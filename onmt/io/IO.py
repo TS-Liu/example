@@ -258,7 +258,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
                     val = [val]
                 counter[k].update(val)
 
-    _build_field_vocab(fields["tgt"], counter["tgt"],
+    _build_field_vocab(fields["tgt_small"], counter["tgt"],
                        max_size=tgt_vocab_size,
                        min_freq=tgt_words_min_frequency)
     print(" * tgt vocab size: %d." % len(fields["tgt"].vocab))
@@ -266,7 +266,19 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
     # All datasets have same num of n_tgt_features,
     # getting the last one is OK.
     for j in range(dataset.n_tgt_feats):
-        key = "tgt_feat_" + str(j)
+        key = "tgt_small_feat_" + str(j)
+        _build_field_vocab(fields[key], counter[key])
+        print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
+
+    _build_field_vocab(fields["tgt_big"], counter["tgt"],
+                       max_size=tgt_vocab_size,
+                       min_freq=tgt_words_min_frequency)
+    print(" * tgt vocab size: %d." % len(fields["tgt"].vocab))
+
+    # All datasets have same num of n_tgt_features,
+    # getting the last one is OK.
+    for j in range(dataset.n_tgt_feats):
+        key = "tgt_big_feat_" + str(j)
         _build_field_vocab(fields[key], counter[key])
         print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
 
