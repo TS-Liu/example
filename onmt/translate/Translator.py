@@ -110,7 +110,7 @@ class Translator(object):
         src = onmt.io.make_features(batch, 'src', data_type)
         src_lengths = None
         if data_type == 'text':
-            _, src_lengths = batch.src
+            _, __, src_lengths = batch.src
 
         enc_states, memory_bank = self.model.encoder(src, src_lengths)
         dec_states = self.model.decoder.init_decoder_state(
@@ -205,7 +205,7 @@ class Translator(object):
     def _run_target(self, batch, data):
         data_type = data.data_type
         if data_type == 'text':
-            _, src_lengths = batch.src
+            _, __, src_lengths = batch.src
         else:
             src_lengths = None
         src = onmt.io.make_features(batch, 'src', data_type)
@@ -224,7 +224,7 @@ class Translator(object):
             tgt_in, memory_bank, dec_states, memory_lengths=src_lengths)
 
         tgt_pad = self.fields["tgt"].vocab.stoi[onmt.io.PAD_WORD]
-        for dec, tgt in zip(dec_out, batch.tgt[1:].data):
+        for dec, tgt in zip(dec_out, batch.tgt[0][1:].data):
             # Log prob of each word.
             out = self.model.generator.forward(dec)
             tgt = tgt.unsqueeze(1)

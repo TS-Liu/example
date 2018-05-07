@@ -68,7 +68,7 @@ class TranslationBuilder(object):
             src = None
 
         if self.has_tgt:
-            tgt = batch.tgt.data.index_select(1, perm)
+            tgt = batch.tgt[0].data.index_select(1, perm)
         else:
             tgt = None
 
