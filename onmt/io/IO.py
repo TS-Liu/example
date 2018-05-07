@@ -217,12 +217,13 @@ def build_dataset(fields, data_type, src_path, tgt_path, src_dir=None,
     return dataset
 
 
-def _build_field_vocab(field, counter, **kwargs):
+def _build_field_vocab(field, counter, max_size, min_freq, max_size_big, min_freq_big):
     specials = list(OrderedDict.fromkeys(
         tok for tok in [field.unk_token, field.pad_token, field.init_token,
                         field.eos_token]
         if tok is not None))
-    field.vocab = field.vocab_cls(counter, specials=specials, **kwargs)
+    field.vocab = field.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
+    field.vocab_big = field.vocab_cls_big(counter, specials=specials, max_size=max_size_big,min_freq=min_freq_big)
 
 
 def build_vocab(train_dataset_files, fields, data_type, share_vocab,
@@ -258,27 +259,18 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
                     val = [val]
                 counter[k].update(val)
 
-    _build_field_vocab(fields["tgt_small"], counter["tgt"],
+    _build_field_vocab(fields["tgt"], counter["tgt"],
                        max_size=tgt_vocab_size,
-                       min_freq=tgt_words_min_frequency)
+                       min_freq=tgt_words_min_frequency,
+                       max_size_big=tgt_vocab_size,
+                       min_freq_big=tgt_words_min_frequency
+                       )
     print(" * tgt vocab size: %d." % len(fields["tgt"].vocab))
 
     # All datasets have same num of n_tgt_features,
     # getting the last one is OK.
     for j in range(dataset.n_tgt_feats):
-        key = "tgt_small_feat_" + str(j)
-        _build_field_vocab(fields[key], counter[key])
-        print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
-
-    _build_field_vocab(fields["tgt_big"], counter["tgt"],
-                       max_size=tgt_vocab_size,
-                       min_freq=tgt_words_min_frequency)
-    print(" * tgt vocab size: %d." % len(fields["tgt"].vocab))
-
-    # All datasets have same num of n_tgt_features,
-    # getting the last one is OK.
-    for j in range(dataset.n_tgt_feats):
-        key = "tgt_big_feat_" + str(j)
+        key = "tgt_feat_" + str(j)
         _build_field_vocab(fields[key], counter[key])
         print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
 

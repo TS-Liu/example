@@ -138,7 +138,7 @@ class Translation(object):
         pred_sent = ' '.join(best_pred)
         output += 'PRED {}: {}\n'.format(sent_number, pred_sent)
         print("PRED SCORE: {:.4f}".format(best_score))
-
+        print("Attn: {}".format(self.attns))
         if self.gold_sent is not None:
             tgt_sent = ' '.join(self.gold_sent)
             output += 'GOLD {}: {}\n'.format(sent_number, tgt_sent)

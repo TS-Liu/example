@@ -9,6 +9,11 @@ import sys
 import torch
 import torchtext
 
+from collections import Counter, OrderedDict
+
+from torchtext.data.dataset import Dataset
+from torchtext.vocab import Vocab
+
 from onmt.Utils import aeq
 from onmt.io.DatasetBase import (ONMTDatasetBase, UNK_WORD,
                                  PAD_WORD, BOS_WORD, EOS_WORD)
@@ -200,31 +205,23 @@ class TextDataset(ONMTDatasetBase):
         """
         fields = {}
 
-        fields["src"] = torchtext.data.Field(
+        fields["src"] = Field(
             pad_token=PAD_WORD,
             include_lengths=True)
 
         for j in range(n_src_features):
             fields["src_feat_"+str(j)] = \
-                torchtext.data.Field(pad_token=PAD_WORD)
+                Field(pad_token=PAD_WORD)
 
-        fields["tgt_small"] = torchtext.data.Field(
+        fields["tgt"] = Field(
             init_token=BOS_WORD, eos_token=EOS_WORD,
             pad_token=PAD_WORD)
 
         for j in range(n_tgt_features):
-            fields["tgt_small_feat_"+str(j)] = \
-                torchtext.data.Field(init_token=BOS_WORD, eos_token=EOS_WORD,
+            fields["tgt_feat_"+str(j)] = \
+                Field(init_token=BOS_WORD, eos_token=EOS_WORD,
                                      pad_token=PAD_WORD)
 
-        fields["tgt_big"] = torchtext.data.Field(
-            init_token=BOS_WORD, eos_token=EOS_WORD,
-            pad_token=PAD_WORD)
-
-        for j in range(n_tgt_features):
-            fields["tgt_big_feat_" + str(j)] = \
-                torchtext.data.Field(init_token=BOS_WORD, eos_token=EOS_WORD,
-                                     pad_token=PAD_WORD)
 
         def make_src(data, vocab, is_train):
             src_size = max([t.size(0) for t in data])
@@ -235,7 +232,7 @@ class TextDataset(ONMTDatasetBase):
                     alignment[j, i, t] = 1
             return alignment
 
-        fields["src_map"] = torchtext.data.Field(
+        fields["src_map"] = Field(
             use_vocab=False, tensor_type=torch.FloatTensor,
             postprocessing=make_src, sequential=False)
 
@@ -246,11 +243,11 @@ class TextDataset(ONMTDatasetBase):
                 alignment[:sent.size(0), i] = sent
             return alignment
 
-        fields["alignment"] = torchtext.data.Field(
+        fields["alignment"] = Field(
             use_vocab=False, tensor_type=torch.LongTensor,
             postprocessing=make_tgt, sequential=False)
 
-        fields["indices"] = torchtext.data.Field(
+        fields["indices"] = Field(
             use_vocab=False, tensor_type=torch.LongTensor,
             sequential=False)
 
@@ -414,3 +411,36 @@ class ShardedTextCorpusIterator(object):
                                 for j, f in enumerate(feats))
 
         return example_dict
+class Field(torchtext.data.Field):
+    vocab_cls_big = Vocab
+    def build_vocab(self, *args, max_size, min_freq, max_size_big, min_freq_big):
+        """Construct the Vocab object for this field from one or more datasets.
+
+        Arguments:
+            Positional arguments: Dataset objects or other iterable data
+                sources from which to construct the Vocab object that
+                represents the set of possible values for this field. If
+                a Dataset object is provided, all columns corresponding
+                to this field are used; individual columns can also be
+                provided directly.
+            Remaining keyword arguments: Passed to the constructor of Vocab.
+        """
+        counter = Counter()
+        sources = []
+        for arg in args:
+            if isinstance(arg, Dataset):
+                sources += [getattr(arg, name) for name, field in
+                            arg.fields.items() if field is self]
+            else:
+                sources.append(arg)
+        for data in sources:
+            for x in data:
+                if not self.sequential:
+                    x = [x]
+                counter.update(x)
+        specials = list(OrderedDict.fromkeys(
+            tok for tok in [self.unk_token, self.pad_token, self.init_token,
+                            self.eos_token]
+            if tok is not None))
+        self.vocab = self.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
+        self.vocab_big = self.vocab_cls_big(counter, specials=specials, max_size=max_size_big,min_freq=min_freq_big)
