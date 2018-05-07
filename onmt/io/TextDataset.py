@@ -476,15 +476,15 @@ class Field(torchtext.data.Field):
 
         if self.use_vocab:
             if self.sequential:
-                arrs[0] = [[self.vocab.stoi[x] for x in ex] for ex in arr]
-                arrs[1] = [[self.vocab_big.stoi[x] for x in ex] for ex in arr]
+                arrs.append([[self.vocab.stoi[x] for x in ex] for ex in arr])
+                arrs.append([[self.vocab_big.stoi[x] for x in ex] for ex in arr])
             else:
-                arrs[0] = [self.vocab.stoi[x] for x in arr]
-                arrs[1] = [self.vocab_big.stoi[x] for x in arr]
+                arrs.append([self.vocab.stoi[x] for x in arr])
+                arrs.append([self.vocab_big.stoi[x] for x in arr])
 
             if self.postprocessing is not None:
-                arrs[0] = self.postprocessing(arr, self.vocab, train)
-                arrs[1] = self.postprocessing(arr, self.vocab_big, train)
+                arrs[0] = self.postprocessing(arrs[0], self.vocab, train)
+                arrs[1] = self.postprocessing(arrs[0], self.vocab_big, train)
         else:
             if self.tensor_type not in self.tensor_types:
                 raise ValueError(
@@ -497,13 +497,13 @@ class Field(torchtext.data.Field):
             # the data is sequential, since it's unclear how to coerce padding tokens
             # to a numeric type.
             if not self.sequential:
-                arrs[0] = [numericalization_func(x) if isinstance(x, six.string_types)
-                       else x for x in arr]
-                arrs[1] = [numericalization_func(x) if isinstance(x, six.string_types)
-                       else x for x in arr]
+                arrs.append([numericalization_func(x) if isinstance(x, six.string_types)
+                             else x for x in arr])
+                arrs.append([numericalization_func(x) if isinstance(x, six.string_types)
+                             else x for x in arr])
             if self.postprocessing is not None:
-                arrs[0] = self.postprocessing(arr, None, train)
-                arrs[1] = self.postprocessing(arr, None, train)
+                arrs[0] = self.postprocessing(arrs[0], None, train)
+                arrs[1] = self.postprocessing(arrs[1], None, train)
 
         arrs[0] = self.tensor_type(arrs[0])
         arrs[1] = self.tensor_type(arrs[1])
