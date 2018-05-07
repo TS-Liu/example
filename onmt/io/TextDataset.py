@@ -2,6 +2,7 @@
 
 from collections import Counter
 from itertools import chain
+import six
 import io
 import codecs
 import sys
@@ -13,6 +14,7 @@ from collections import Counter, OrderedDict
 
 from torchtext.data.dataset import Dataset
 from torchtext.vocab import Vocab
+from torch.autograd import Variable
 
 from onmt.Utils import aeq
 from onmt.io.DatasetBase import (ONMTDatasetBase, UNK_WORD,
@@ -444,3 +446,79 @@ class Field(torchtext.data.Field):
             if tok is not None))
         self.vocab = self.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
         self.vocab_big = self.vocab_cls_big(counter, specials=specials, max_size=max_size_big,min_freq=min_freq_big)
+
+    def numericalize(self, arr, device=None, train=True):
+        """Turn a batch of examples that use this field into a Variable.
+
+        If the field has include_lengths=True, a tensor of lengths will be
+        included in the return value.
+
+        Arguments:
+            arr (List[List[str]], or tuple of (List[List[str]], List[int])):
+                List of tokenized and padded examples, or tuple of List of
+                tokenized and padded examples and List of lengths of each
+                example if self.include_lengths is True.
+            device (-1 or None): Device to create the Variable's Tensor on.
+                Use -1 for CPU and None for the currently active GPU device.
+                Default: None.
+            train (boolean): Whether the batch is for a training set.
+                If False, the Variable will be created with volatile=True.
+                Default: True.
+        """
+        arrs = []
+        if self.include_lengths and not isinstance(arr, tuple):
+            raise ValueError("Field has include_lengths set to True, but "
+                             "input data is not a tuple of "
+                             "(data batch, batch lengths).")
+        if isinstance(arr, tuple):
+            arr, lengths = arr
+            lengths = torch.LongTensor(lengths)
+
+        if self.use_vocab:
+            if self.sequential:
+                arrs[0] = [[self.vocab.stoi[x] for x in ex] for ex in arr]
+                arrs[1] = [[self.vocab_big.stoi[x] for x in ex] for ex in arr]
+            else:
+                arrs[0] = [self.vocab.stoi[x] for x in arr]
+                arrs[1] = [self.vocab_big.stoi[x] for x in arr]
+
+            if self.postprocessing is not None:
+                arrs[0] = self.postprocessing(arr, self.vocab, train)
+                arrs[1] = self.postprocessing(arr, self.vocab_big, train)
+        else:
+            if self.tensor_type not in self.tensor_types:
+                raise ValueError(
+                    "Specified Field tensor_type {} can not be used with "
+                    "use_vocab=False because we do not know how to numericalize it. "
+                    "Please raise an issue at "
+                    "https://github.com/pytorch/text/issues".format(self.tensor_type))
+            numericalization_func = self.tensor_types[self.tensor_type]
+            # It doesn't make sense to explictly coerce to a numeric type if
+            # the data is sequential, since it's unclear how to coerce padding tokens
+            # to a numeric type.
+            if not self.sequential:
+                arrs[0] = [numericalization_func(x) if isinstance(x, six.string_types)
+                       else x for x in arr]
+                arrs[1] = [numericalization_func(x) if isinstance(x, six.string_types)
+                       else x for x in arr]
+            if self.postprocessing is not None:
+                arrs[0] = self.postprocessing(arr, None, train)
+                arrs[1] = self.postprocessing(arr, None, train)
+
+        arrs[0] = self.tensor_type(arrs[0])
+        arrs[1] = self.tensor_type(arrs[1])
+        if self.sequential and not self.batch_first:
+            arrs[0].t_()
+            arrs[1].t_()
+        if device == -1:
+            if self.sequential:
+                arrs[0] = arrs[0].contiguous()
+                arrs[1] = arrs[1].contiguous()
+        else:
+            arrs[0] = arrs[0].cuda(device)
+            arrs[0] = arrs[0].cuda(device)
+            if self.include_lengths:
+                lengths = lengths.cuda(device)
+        if self.include_lengths:
+            return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train), lengths
+        return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train)
