@@ -413,7 +413,7 @@ class ShardedTextCorpusIterator(object):
         return example_dict
 class Field(torchtext.data.Field):
     vocab_cls_big = Vocab
-    def build_vocab(self, *args, max_size, min_freq, max_size_big, min_freq_big):
+    def build_vocab(self, *args, **kwargs) :
         """Construct the Vocab object for this field from one or more datasets.
 
         Arguments:

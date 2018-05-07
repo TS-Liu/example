@@ -277,7 +277,10 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
     if data_type == 'text':
         _build_field_vocab(fields["src"], counter["src"],
                            max_size=src_vocab_size,
-                           min_freq=src_words_min_frequency)
+                           min_freq=src_words_min_frequency,
+                           max_size_big=tgt_vocab_size,
+                           min_freq_big=tgt_words_min_frequency
+                           )
         print(" * src vocab size: %d." % len(fields["src"].vocab))
 
         # All datasets have same num of n_src_features,
