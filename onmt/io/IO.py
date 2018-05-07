@@ -55,12 +55,12 @@ def load_fields_from_vocab(vocab, data_type="text"):
     n_src_features = len(collect_features(vocab, 'src'))
     n_tgt_features = len(collect_features(vocab, 'tgt'))
     fields = get_fields(data_type, n_src_features, n_tgt_features)
-    for k, v , v_big in vocab.items():
+    for k, v in vocab.items():
         # Hack. Can't pickle defaultdict :(
-        v.stoi = defaultdict(lambda: 0, v.stoi)
-        v_big.stoi = defaultdict(lambda: 0, v.stoi_big)
-        fields[k].vocab = v
-        fields[k].vocab_big = v_big
+        v[0].stoi = defaultdict(lambda: 0, v[0].stoi)
+        v[1].stoi = defaultdict(lambda: 0, v[1].stoi)
+        fields[k].vocab = v[0]
+        fields[k].vocab_big = v[1]
     return fields
 
 
