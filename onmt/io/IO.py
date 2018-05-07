@@ -73,7 +73,7 @@ def save_fields_to_vocab(fields):
         if f is not None and 'vocab' in f.__dict__:
             f.vocab.stoi = dict(f.vocab.stoi)
             f.vocab_big.stoi = dict(f.vocab_big.stoi)
-            vocab.append((k, f.vocab, f.vocab_big))
+            vocab.append((k, [f.vocab, f.vocab_big]))
     return vocab
 
 
