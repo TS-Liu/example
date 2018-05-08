@@ -116,7 +116,7 @@ def get_num_features(data_type, corpus_file, side):
         return AudioDataset.get_num_features(corpus_file, side)
 
 
-def make_features(batch, side, data_type='text',n=0):
+def make_features(batch, side, data_type='text'):
     """
     Args:
         batch (Variable): a batch of source or target data.
@@ -129,9 +129,9 @@ def make_features(batch, side, data_type='text',n=0):
     """
     assert side in ['src', 'tgt']
     if isinstance(batch.__dict__[side], tuple):
-        data = batch.__dict__[side][n]
+        data = batch.__dict__[side][0]
     else:
-        data = batch.__dict__[side][n]
+        data = batch.__dict__[side]
 
     feat_start = side + "_feat_"
     keys = sorted([k for k in batch.__dict__ if feat_start in k])
