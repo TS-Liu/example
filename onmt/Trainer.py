@@ -287,15 +287,15 @@ class Trainer(object):
                 trunc_size = target_size
 
             dec_state = None
-            src = onmt.io.make_features(batch, 'src', self.data_type)
+            src = onmt.io.make_features(batch, 'src', self.data_type, 1)
             if self.data_type == 'text':
                 _, __, src_lengths = batch.src
                 report_stats.n_src_words += src_lengths.sum()
             else:
                 src_lengths = None
 
-            tgt_outer = onmt.io.make_features(batch, 'tgt', 0)
-            tgt_outer_2 = onmt.io.make_features(batch, 'tgt', 1)
+            tgt_outer = onmt.io.make_features(batch, 'tgt', self.data_type, 0)
+            tgt_outer_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
 
             for j in range(0, target_size-1, trunc_size):
                 # 1. Create truncated target.
@@ -306,7 +306,7 @@ class Trainer(object):
                 if self.grad_accum_count == 1:
                     self.model.zero_grad()
                 outputs, attns, dec_state, outputs_2, attns_2, dec_state_2 = \
-                    self.model(src, tgt, src_lengths, dec_state)
+                    self.model(src, tgt, tgt_2, src_lengths, dec_state)
 
                 # 3. Compute loss in shards for memory efficiency.
                 batch_stats = self.train_loss.sharded_compute_loss(
