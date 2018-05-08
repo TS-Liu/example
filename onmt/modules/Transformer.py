@@ -153,6 +153,7 @@ class Unk_DecoderLayer(EncoderBase):
         # self multihead attention
         norm_x = self.ma_l1_prenorm(x)
         all_inputs = norm_x
+        previous_input = None
         if previous_input is not None:
             all_inputs = torch.cat((previous_input, norm_x), dim=1)
             self_attention_bias = None
@@ -403,7 +404,7 @@ class Unk_TransformerDecoder(nn.Module):
             if state.previous_input is not None:
                 prev_layer_input = state.previous_layer_inputs[i]
             output, attn, all_input \
-                = self.layer_stack[i](output, pre_layer_hiden, src_memory_bank, decoder_bias,
+                = self.layer_stack[i](output, pre_layer_hiden.transpose(0,1), src_memory_bank, decoder_bias,
                                encoder_decoder_bias, previous_input=prev_layer_input)
             saved_inputs.append(all_input)
 
