@@ -181,8 +181,11 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
 
     # Make decoder.
     tgt_dict = fields["tgt"].vocab
+    tgt_dict2 = fields["tgt"].vocab_big
     feature_dicts = onmt.io.collect_feature_vocabs(fields, 'tgt')
     tgt_embeddings = make_embeddings(model_opt, tgt_dict,
+                                     feature_dicts, for_encoder=False)
+    tgt_embeddings2 = make_embeddings(model_opt, tgt_dict2,
                                      feature_dicts, for_encoder=False)
 
     # Share the embedding matrix - preprocess with share_vocab required.
@@ -193,9 +196,10 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
                                  'preprocess if you use share_embeddings!')
 
         tgt_embeddings.word_lut.weight = src_embeddings.word_lut.weight
+        tgt_embeddings2.word_lut.weight = src_embeddings.word_lut.weight
 
     decoder = make_decoder(model_opt, tgt_embeddings)
-    decoder_2 = make_decoder_2(model_opt, tgt_embeddings)
+    decoder_2 = make_decoder_2(model_opt, tgt_embeddings2)
 
     # Make NMTModel(= encoder + decoder).
     model = NMTModel(encoder, decoder, decoder_2)
@@ -227,6 +231,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         print('Loading model parameters.')
         model.load_state_dict(checkpoint['model'])
         generator.load_state_dict(checkpoint['generator'])
+        generator2.load_state_dict(checkpoint['generator_2'])
     else:
         if model_opt.param_init != 0.0:
             print('Intializing model parameters.')
@@ -234,11 +239,16 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
                 p.data.uniform_(-model_opt.param_init, model_opt.param_init)
             for p in generator.parameters():
                 p.data.uniform_(-model_opt.param_init, model_opt.param_init)
+            for p in generator2.parameters():
+                p.data.uniform_(-model_opt.param_init, model_opt.param_init)
         if model_opt.param_init_glorot:
             for p in model.parameters():
                 if p.dim() > 1:
                     xavier_uniform(p)
             for p in generator.parameters():
+                if p.dim() > 1:
+                    xavier_uniform(p)
+            for p in generator2.parameters():
                 if p.dim() > 1:
                     xavier_uniform(p)
 
