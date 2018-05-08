@@ -159,6 +159,8 @@ def build_save_vocab(train_dataset, fields, opt):
                                  opt.share_vocab,
                                  opt.src_vocab_size,
                                  opt.src_words_min_frequency,
+                                 opt.tgt_vocab_size,
+                                 opt.tgt_words_min_frequency,
                                  opt.tgt_vocab_size_big,
                                  opt.tgt_words_min_frequency_big)
 
