@@ -592,7 +592,7 @@ class NMTModel(nn.Module):
                          else dec_state,
                          memory_lengths=lengths)
         decoder_outputs_2, dec_state_2, attns_2 = \
-            self.decoder_2(tgt, enc_final, memory_bank, decoder_outputs,
+            self.decoder_2(tgt, enc_final, decoder_outputs, memory_bank,
                          enc_state if dec_state is None
                          else dec_state,
                          memory_lengths=lengths)
