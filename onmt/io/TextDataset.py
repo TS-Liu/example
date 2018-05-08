@@ -521,4 +521,4 @@ class Field(torchtext.data.Field):
                 lengths = lengths.cuda(device)
         if self.include_lengths:
             return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train), lengths
-        return [Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train)]
+        return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train)
