@@ -213,14 +213,14 @@ class Trainer(object):
             cur_dataset = valid_iter.get_cur_dataset()
             self.valid_loss.cur_dataset = cur_dataset
 
-            src = onmt.io.make_features(batch, 'src', self.data_type)
+            src = onmt.io.make_features(batch, 'src', self.data_type, 1)
             if self.data_type == 'text':
                 _,__, src_lengths = batch.src
             else:
                 src_lengths = None
 
-            tgt = onmt.io.make_features(batch, 'tgt')
-            tgt = onmt.io.make_features(batch, 'tgt')
+            tgt = onmt.io.make_features(batch, 'tgt', self.data_type, 0)
+            tgt_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
 
             # F-prop through the model.
             outputs, attns, _, outputs_2, attns_2, _2= self.model(src, tgt, tgt_2, src_lengths)
