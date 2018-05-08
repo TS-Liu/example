@@ -484,7 +484,7 @@ class Field(torchtext.data.Field):
 
             if self.postprocessing is not None:
                 arrs[0] = self.postprocessing(arrs[0], self.vocab, train)
-                arrs[1] = self.postprocessing(arrs[0], self.vocab_big, train)
+                arrs[1] = self.postprocessing(arrs[1], self.vocab_big, train)
         else:
             if self.tensor_type not in self.tensor_types:
                 raise ValueError(
@@ -516,9 +516,9 @@ class Field(torchtext.data.Field):
                 arrs[1] = arrs[1].contiguous()
         else:
             arrs[0] = arrs[0].cuda(device)
-            arrs[0] = arrs[0].cuda(device)
+            arrs[1] = arrs[1].cuda(device)
             if self.include_lengths:
                 lengths = lengths.cuda(device)
         if self.include_lengths:
             return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train), lengths
-        return Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train)
+        return [Variable(arrs[0], volatile=not train), Variable(arrs[1], volatile=not train)]
