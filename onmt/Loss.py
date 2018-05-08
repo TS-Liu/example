@@ -154,7 +154,7 @@ class NMTLossCompute(LossComputeBase):
     """
     Standard NMT Loss Computation.
     """
-    def __init__(self, generator, tgt_vocab, normalization="sents",
+    def __init__(self, generator, tgt_vocab, tgt_vocab_big, normalization="sents",
                  label_smoothing=0.0):
         super(NMTLossCompute, self).__init__(generator, tgt_vocab)
         assert (label_smoothing >= 0.0 and label_smoothing <= 1.0)
@@ -166,12 +166,12 @@ class NMTLossCompute(LossComputeBase):
             # is equivalent to NLLLoss or CrossEntropyLoss.
             # All non-true labels are uniformly set to low-confidence.
             self.criterion = nn.KLDivLoss(size_average=False)
-            one_hot = torch.randn(1, len(tgt_vocab))
-            one_hot.fill_(label_smoothing / (len(tgt_vocab) - 2))
+            one_hot = torch.randn(1, len(tgt_vocab_big))
+            one_hot.fill_(label_smoothing / (len(tgt_vocab_big) - 2))
             one_hot[0][self.padding_idx] = 0
             self.register_buffer('one_hot', one_hot)
         else:
-            weight = torch.ones(len(tgt_vocab))
+            weight = torch.ones(len(tgt_vocab_big))
             weight[self.padding_idx] = 0
             self.criterion = nn.NLLLoss(weight, size_average=False)
         self.confidence = 1.0 - label_smoothing

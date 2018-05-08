@@ -142,7 +142,7 @@ class CopyGeneratorLossCompute(onmt.Loss.LossComputeBase):
     """
     Copy Generator Loss Computation.
     """
-    def __init__(self, generator, tgt_vocab,
+    def __init__(self, generator, tgt_vocab, tgt_vocab_big,
                  force_copy, normalize_by_length,
                  eps=1e-20):
         super(CopyGeneratorLossCompute, self).__init__(

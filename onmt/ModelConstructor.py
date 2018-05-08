@@ -218,13 +218,13 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
     # Make Generator.
     if not model_opt.copy_attn:
         generator2 = nn.Sequential(
-            nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab)),
+            nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab_big)),
             nn.LogSoftmax())
         if model_opt.share_decoder_embeddings:
             generator2[0].weight = decoder.embeddings.word_lut.weight
     else:
         generator2 = CopyGenerator(model_opt.rnn_size,
-                                      fields["tgt"].vocab)
+                                      fields["tgt"].vocab_big)
 
     # Load the model states from checkpoint or initialize them.
     if checkpoint is not None:

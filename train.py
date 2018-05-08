@@ -203,7 +203,7 @@ def make_dataset_iter(datasets, fields, opt, is_train=True):
                            device, is_train)
 
 
-def make_loss_compute(model, tgt_vocab, opt, train=True):
+def make_loss_compute(model, tgt_vocab, tgt_vocab_big, opt, train=True):
     """
     This returns user-defined LossCompute object, which is used to
     compute loss in train/validate process. You can implement your
@@ -211,11 +211,11 @@ def make_loss_compute(model, tgt_vocab, opt, train=True):
     """
     if opt.copy_attn:
         compute = onmt.modules.CopyGeneratorLossCompute(
-            model.generator, tgt_vocab, opt.copy_attn_force,
+            model.generator, tgt_vocab, tgt_vocab_big,opt.copy_attn_force,
             opt.copy_loss_by_seqlength)
     else:
         compute = onmt.Loss.NMTLossCompute(
-            model.generator, tgt_vocab,
+            model.generator, tgt_vocab, tgt_vocab_big,
             label_smoothing=opt.label_smoothing if train else 0.0)
 
     if use_gpu(opt):
@@ -225,8 +225,8 @@ def make_loss_compute(model, tgt_vocab, opt, train=True):
 
 
 def train_model(model, fields, optim, data_type, model_opt):
-    train_loss = make_loss_compute(model, fields["tgt"].vocab, opt)
-    valid_loss = make_loss_compute(model, fields["tgt"].vocab, opt,
+    train_loss = make_loss_compute(model, fields["tgt"].vocab, fields["tgt"].vocab_big, opt)
+    valid_loss = make_loss_compute(model, fields["tgt"].vocab, fields["tgt"].vocab_big, opt,
                                    train=False)
 
     trunc_size = opt.truncated_decoder  # Badly named...
