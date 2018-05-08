@@ -388,8 +388,7 @@ class Unk_TransformerDecoder(nn.Module):
         # unk_bias = Variable(-torch.ones(tgt_batch, tgt_len))
 
 
-        output = output
-                 #*(tgt_unk_mask.repeat(1, hiden_len, 1).transpose(1,2)) + pre_layer_emb.transpose(0,1)*(tgt_no_unk_mask.repeat(1, hiden_len, 1))
+        output = output*(tgt_unk_mask.repeat(1, hiden_len, 1).transpose(1,2)) + pre_layer_emb.transpose(0,1)*(tgt_no_unk_mask.repeat(1, hiden_len, 1).transpose(1,2))
 
         tgt_unk_mask = tgt_unk_mask.repeat(1, tgt_len, 1)   ########（2*11*11）
         # unk_bias = Variable(tgt_words.data.eq(unk_idx).float().unsqueeze(1))      ########

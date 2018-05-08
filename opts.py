@@ -162,9 +162,12 @@ def preprocess_opts(parser):
                        help="Size of the source vocabulary")
     group.add_argument('-tgt_vocab_size', type=int, default=50000,
                        help="Size of the target vocabulary")
+    group.add_argument('-tgt_vocab_size_big', type=int, default=50000,
+                       help="Size of the target vocabulary")
 
     group.add_argument('-src_words_min_frequency', type=int, default=0)
     group.add_argument('-tgt_words_min_frequency', type=int, default=0)
+    group.add_argument('-tgt_words_min_frequency_big', type=int, default=0)
 
     group.add_argument('-dynamic_dict', action='store_true',
                        help="Create dynamic dictionaries")

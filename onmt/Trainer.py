@@ -220,9 +220,10 @@ class Trainer(object):
                 src_lengths = None
 
             tgt = onmt.io.make_features(batch, 'tgt')
+            tgt = onmt.io.make_features(batch, 'tgt')
 
             # F-prop through the model.
-            outputs, attns, _, outputs_2, attns_2, _2= self.model(src, tgt, src_lengths)
+            outputs, attns, _, outputs_2, attns_2, _2= self.model(src, tgt, tgt_2, src_lengths)
 
             # Compute loss.
             batch_stats = self.valid_loss.monolithic_compute_loss(
@@ -293,11 +294,13 @@ class Trainer(object):
             else:
                 src_lengths = None
 
-            tgt_outer = onmt.io.make_features(batch, 'tgt')
+            tgt_outer = onmt.io.make_features(batch, 'tgt', 0)
+            tgt_outer_2 = onmt.io.make_features(batch, 'tgt', 1)
 
             for j in range(0, target_size-1, trunc_size):
                 # 1. Create truncated target.
                 tgt = tgt_outer[j: j + trunc_size]
+                tgt_2 = tgt_outer_2[j: j + trunc_size]
 
                 # 2. F-prop all but generator.
                 if self.grad_accum_count == 1:
