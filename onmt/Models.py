@@ -553,11 +553,12 @@ class NMTModel(nn.Module):
       decoder (:obj:`RNNDecoderBase`): a decoder object
       multi<gpu (bool): setup for multigpu support
     """
-    def __init__(self, encoder, decoder, multigpu=False):
+    def __init__(self, encoder, decoder, decoder_2, multigpu=False):
         self.multigpu = multigpu
         super(NMTModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self.decoder_2 = decoder_2
 
     def forward(self, src, tgt, lengths, dec_state=None):
         """Forward propagate a `src` and `tgt` pair for training.
@@ -590,11 +591,16 @@ class NMTModel(nn.Module):
                          enc_state if dec_state is None
                          else dec_state,
                          memory_lengths=lengths)
+        decoder_outputs_2, dec_state_2, attns_2 = \
+            self.decoder_2(tgt, enc_final, memory_bank,
+                         enc_state if dec_state is None
+                         else dec_state,
+                         memory_lengths=lengths)
         if self.multigpu:
             # Not yet supported on multi-gpu
             dec_state = None
             attns = None
-        return decoder_outputs, attns, dec_state
+        return decoder_outputs, attns, dec_state, decoder_outputs_2, dec_state_2, attns_2
 
 
 class DecoderState(object):

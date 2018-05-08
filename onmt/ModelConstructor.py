@@ -12,7 +12,7 @@ import onmt.modules
 from onmt.Models import NMTModel, MeanEncoder, RNNEncoder, \
                         StdRNNDecoder, InputFeedRNNDecoder
 from onmt.modules import Embeddings, ImageEncoder, CopyGenerator, \
-                         TransformerEncoder, TransformerDecoder, \
+                         TransformerEncoder, TransformerDecoder, Unk_TransformerDecoder, \
                          CNNEncoder, CNNDecoder, AudioEncoder
 from onmt.Utils import use_gpu
 from torch.nn.init import xavier_uniform
@@ -114,6 +114,17 @@ def make_decoder(opt, embeddings):
                              opt.dropout,
                              embeddings,
                              opt.reuse_copy_attn)
+def make_decoder_2(opt, embeddings):
+    """
+    Various decoder dispatcher function.
+    Args:
+        opt: the option in current environment.
+        embeddings (Embeddings): vocab embeddings for this decoder.
+    """
+    return Unk_TransformerDecoder(opt.dec_layers, opt.rnn_size,
+                                  opt.global_attention, opt.copy_attn,
+                                  opt.dropout, embeddings)
+
 
 
 def load_test_model(opt, dummy_opt):
@@ -184,9 +195,10 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         tgt_embeddings.word_lut.weight = src_embeddings.word_lut.weight
 
     decoder = make_decoder(model_opt, tgt_embeddings)
+    decoder_2 = make_decoder2(model_opt, tgt_embeddings)
 
     # Make NMTModel(= encoder + decoder).
-    model = NMTModel(encoder, decoder)
+    model = NMTModel(encoder, decoder, decoder_2)
     model.model_type = model_opt.model_type
 
     # Make Generator.
@@ -199,6 +211,16 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
     else:
         generator = CopyGenerator(model_opt.rnn_size,
                                   fields["tgt"].vocab)
+    # Make Generator.
+    if not model_opt.copy_attn:
+        generator2 = nn.Sequential(
+            nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab)),
+            nn.LogSoftmax())
+        if model_opt.share_decoder_embeddings:
+            generator2[0].weight = decoder.embeddings.word_lut.weight
+    else:
+        generator2 = CopyGenerator(model_opt.rnn_size,
+                                      fields["tgt"].vocab)
 
     # Load the model states from checkpoint or initialize them.
     if checkpoint is not None:
@@ -229,6 +251,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
 
     # Add generator to model (this registers it as parameter of model).
     model.generator = generator
+    model.generator2 = generator2
 
     # Make the whole model leverage GPU if indicated to do so.
     if gpu:

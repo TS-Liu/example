@@ -7,7 +7,7 @@ from onmt.modules.AudioEncoder import AudioEncoder
 from onmt.modules.CopyGenerator import CopyGenerator, CopyGeneratorLossCompute
 from onmt.modules.StructuredAttention import MatrixTree
 from onmt.modules.Transformer import \
-   TransformerEncoder, TransformerDecoder 
+   TransformerEncoder, TransformerDecoder, Unk_TransformerDecoder
 from onmt.modules.Conv2Conv import CNNEncoder, CNNDecoder
 from onmt.modules.MultiHeadedAttn import MultiHeadedAttention
 from onmt.modules.StackedRNN import StackedLSTM, StackedGRU
@@ -29,7 +29,7 @@ __all__ = [EncoderBase, MeanEncoder, RNNDecoderBase, InputFeedRNNDecoder,
            StdRNNDecoder, ContextGate, GlobalAttention, ImageEncoder,
            PositionalEncoding, CopyGenerator, MultiHeadedAttention,
            LayerNorm,
-           TransformerEncoder, TransformerDecoder, Embeddings, Elementwise,
+           TransformerEncoder, TransformerDecoder, Unk_TransformerDecoder, Embeddings, Elementwise,
            MatrixTree, WeightNormConv2d, ConvMultiStepAttention,
            CNNEncoder, CNNDecoder, StackedLSTM, StackedGRU,
            context_gate_factory, CopyGeneratorLossCompute, AudioEncoder]
