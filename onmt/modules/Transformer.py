@@ -346,6 +346,7 @@ class Unk_TransformerDecoder(nn.Module):
         aeq(tgt_batch, memory_batch)
 
         emb = self.embeddings(tgt)
+        state.previous_input = None
         if state.previous_input is not None:
             emb = emb[state.previous_input.size(0):, ]
         assert emb.dim() == 3  # len x batch x embedding_dim
