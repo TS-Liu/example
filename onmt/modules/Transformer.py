@@ -346,6 +346,7 @@ class Unk_TransformerDecoder(nn.Module):
         aeq(tgt_batch, memory_batch)
 
         emb = self.embeddings(tgt)
+        _, __, hiden_len = emb.size()
         state.previous_input = None
         if state.previous_input is not None:
             emb = emb[state.previous_input.size(0):, ]
@@ -386,7 +387,7 @@ class Unk_TransformerDecoder(nn.Module):
         # unk_bias = Variable(-torch.ones(tgt_batch, tgt_len))
 
 
-        output = output*tgt_unk_mask + pre_layer_emb*tgt_no_unk_mask
+        output = output*tgt_unk_mask.repeat(1, hiden_len, 1).transpose(1,2) + pre_layer_emb.transpose(0,1)*tgt_no_unk_mask.repeat(1, hiden_len, 1)
 
         tgt_unk_mask = tgt_unk_mask.repeat(1, tgt_len, 1)   ########（2*11*11）
         # unk_bias = Variable(tgt_words.data.eq(unk_idx).float().unsqueeze(1))      ########
