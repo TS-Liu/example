@@ -166,8 +166,8 @@ class NMTLossCompute(LossComputeBase):
             # is equivalent to NLLLoss or CrossEntropyLoss.
             # All non-true labels are uniformly set to low-confidence.
             self.criterion = nn.KLDivLoss(size_average=False)
-            one_hot = torch.randn(1, len(tgt_vocab_big))
-            one_hot.fill_(label_smoothing / (len(tgt_vocab_big) - 2))
+            one_hot = torch.randn(1, len(tgt_vocab))
+            one_hot.fill_(label_smoothing / (len(tgt_vocab) - 2))
             one_hot[0][self.padding_idx] = 0
             self.register_buffer('one_hot', one_hot)
         else:
