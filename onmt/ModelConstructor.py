@@ -195,7 +195,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         tgt_embeddings.word_lut.weight = src_embeddings.word_lut.weight
 
     decoder = make_decoder(model_opt, tgt_embeddings)
-    decoder_2 = make_decoder2(model_opt, tgt_embeddings)
+    decoder_2 = make_decoder_2(model_opt, tgt_embeddings)
 
     # Make NMTModel(= encoder + decoder).
     model = NMTModel(encoder, decoder, decoder_2)
