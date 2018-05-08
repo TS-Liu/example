@@ -303,7 +303,7 @@ class TransformerDecoder(nn.Module):
 
         # Update the state.
         state = state.update_state(tgt, saved_inputs)
-        return outputs, state, attns
+        return emb, outputs, state, attns
 
     def init_decoder_state(self, src, memory_bank, enc_hidden):
         return TransformerDecoderState(src)
