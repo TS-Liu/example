@@ -40,7 +40,7 @@ class LossComputeBase(nn.Module):
         self.tgt_vocab_big = tgt_vocab_big
         self.padding_idx = tgt_vocab.stoi[onmt.io.PAD_WORD]
 
-    def _make_shard_state(self, batch, output, range_, attns=None):
+    def _make_shard_state(self, batch, output, range_, attns=None, attns_2= None):
         """
         Make shard state dictionary for shards() to return iterable
         shards for efficient loss computation. Subclass must define
@@ -67,7 +67,7 @@ class LossComputeBase(nn.Module):
         """
         return NotImplementedError
 
-    def monolithic_compute_loss(self, batch, output, output2, attns):
+    def monolithic_compute_loss(self, batch, output, output2, attns, attns2):
         """
         Compute the forward loss for the batch.
 
@@ -82,12 +82,12 @@ class LossComputeBase(nn.Module):
             :obj:`onmt.Statistics`: loss statistics
         """
         range_ = (0, batch.tgt[0].size(0))
-        shard_state = self._make_shard_state(batch, output, output2, range_, attns)
+        shard_state = self._make_shard_state(batch, output, output2, range_, attns, attns2)
         _, batch_stats = self._compute_loss(batch, **shard_state)
 
         return batch_stats
 
-    def sharded_compute_loss(self, batch, output, output2, attns,
+    def sharded_compute_loss(self, batch, output, output2, attns, attns_2,
                              cur_trunc, trunc_size, shard_size,
                              normalization):
         """Compute the forward loss and backpropagate.  Computation is done
@@ -119,7 +119,7 @@ class LossComputeBase(nn.Module):
         """
         batch_stats = onmt.Statistics()
         range_ = (cur_trunc, cur_trunc + trunc_size)
-        shard_state = self._make_shard_state(batch, output, output2, range_, attns)
+        shard_state = self._make_shard_state(batch, output, output2, range_, attns, attns_2,)
 
         for shard in shards(shard_state, shard_size):
             loss, stats = self._compute_loss(batch, **shard)
@@ -192,7 +192,7 @@ class NMTLossCompute(LossComputeBase):
             self.criterion2 = nn.NLLLoss(weight2, size_average=False)
         self.confidence = 1.0 - label_smoothing
 
-    def _make_shard_state(self, batch, output, output2, range_, attns=None):
+    def _make_shard_state(self, batch, output, output2, range_, attns=None, attns_2=None):
         return {
             "output": output,
             "output2": output2,
