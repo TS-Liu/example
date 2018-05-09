@@ -177,10 +177,18 @@ class NMTLossCompute(LossComputeBase):
             one_hot.fill_(label_smoothing / (len(tgt_vocab) - 2))
             one_hot[0][self.padding_idx] = 0
             self.register_buffer('one_hot', one_hot)
+
+            one_hot2 = torch.randn(1, len(tgt_vocab_big))
+            one_hot2.fill_(label_smoothing / (len(tgt_vocab_big) - 2))
+            one_hot2[0][self.padding_idx] = 0
+            self.register_buffer('one_hot2', one_hot2)
         else:
             weight = torch.ones(len(tgt_vocab))
             weight[self.padding_idx] = 0
             self.criterion = nn.NLLLoss(weight, size_average=False)
+            weight2 = torch.ones(len(tgt_vocab_big))
+            weight2[self.padding_idx] = 0
+            self.criterion2 = nn.NLLLoss(weight2, size_average=False)
         self.confidence = 1.0 - label_smoothing
 
     def _make_shard_state(self, batch, output, output2, range_, attns=None):
@@ -193,7 +201,7 @@ class NMTLossCompute(LossComputeBase):
 
     def _compute_loss(self, batch, output, output2, target_unk, target):
         scores_unk = self.generator(self._bottle(output))
-        scores = self.generator(self._bottle(output2))
+        scores = self.generator2(self._bottle(output2))
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
@@ -201,7 +209,7 @@ class NMTLossCompute(LossComputeBase):
             tdata = gtruth.data
             mask = torch.nonzero(tdata.eq(self.padding_idx)).squeeze()
             log_likelihood = torch.gather(scores.data, 1, tdata.unsqueeze(1))
-            tmp_ = self.one_hot.repeat(gtruth.size(0), 1)
+            tmp_ = self.one_hot2.repeat(gtruth.size(0), 1)
             tmp_.scatter_(1, tdata.unsqueeze(1), self.confidence)
             if mask.dim() > 0:
                 log_likelihood.index_fill_(0, mask, 0)
@@ -218,7 +226,7 @@ class NMTLossCompute(LossComputeBase):
                 tmp__unk.index_fill_(0, mask_unk, 0)
             gtruth_unk = Variable(tmp__unk, requires_grad=False)
         loss_unk = self.criterion(scores_unk, gtruth_unk)
-        loss = self.criterion(scores, gtruth)
+        loss = self.criterion2(scores, gtruth)
         # if self.confidence < 1:
         #     # Default: report smoothed ppl.
         #     # loss_data = -log_likelihood.sum(0)
