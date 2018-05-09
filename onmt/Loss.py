@@ -39,6 +39,7 @@ class LossComputeBase(nn.Module):
         self.tgt_vocab = tgt_vocab
         self.tgt_vocab_big = tgt_vocab_big
         self.padding_idx = tgt_vocab.stoi[onmt.io.PAD_WORD]
+        self.unk_idx = tgt_vocab.stoi[onmt.io.UNK]
 
     def _make_shard_state(self, batch, output, range_, attns=None, attns_2= None):
         """
@@ -203,7 +204,10 @@ class NMTLossCompute(LossComputeBase):
     def _compute_loss(self, batch, output, output2, target_unk, target):
         scores_unk = self.generator(self._bottle(output))
         scores = self.generator2(self._bottle(output2))
-        # scores = scores +scores_unk
+        _, vocab_size = scores.size()
+        tgt_unk_mask = Variable(target_unk.eq(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2)  ########
+        tgt_no_unk_mask = Variable(target_unk.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2)
+        scores = scores*tgt_unk_mask +scores_unk*tgt_no_unk_mask
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
@@ -237,7 +241,6 @@ class NMTLossCompute(LossComputeBase):
         # else:
         #     loss_data = loss.data.clone()
         #     loss_data = loss.data.clone()
-        loss = loss +loss_unk
         loss_data_unk = loss_unk.data.clone()
         loss_data = loss.data.clone()
         stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
