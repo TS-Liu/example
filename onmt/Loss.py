@@ -54,7 +54,7 @@ class LossComputeBase(nn.Module):
         """
         return NotImplementedError
 
-    def _compute_loss(self, batch, output, target, **kwargs):
+    def _compute_loss(self, batch, output, output2, target_unk, target, **kwargs):
         """
         Compute the loss. Subclass must define this method.
 
