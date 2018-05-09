@@ -203,7 +203,7 @@ class NMTLossCompute(LossComputeBase):
     def _compute_loss(self, batch, output, output2, target_unk, target):
         scores_unk = self.generator(self._bottle(output))
         scores = self.generator2(self._bottle(output2))
-        scores = scores +scores_unk
+        # scores = scores +scores_unk
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
