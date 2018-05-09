@@ -51,7 +51,7 @@ class Statistics(object):
         return 100 * (self.n_correct_unk / self.n_words_unk)
 
     def xent(self):
-        return self.loss / self.n_words
+        return self.loss_unk / self.n_words
 
     def ppl(self):
         return math.exp(min(self.loss / self.n_words, 100))

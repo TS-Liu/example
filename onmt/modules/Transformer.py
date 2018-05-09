@@ -405,6 +405,7 @@ class Unk_TransformerDecoder(nn.Module):
             output, attn, all_input \
                 = self.layer_stack[i](output, pre_layer_hiden.transpose(0,1), src_memory_bank, decoder_bias,
                                encoder_decoder_bias, previous_input=prev_layer_input)
+            output = output
             saved_inputs.append(all_input)
 
         saved_inputs = torch.stack(saved_inputs)
