@@ -203,6 +203,7 @@ class NMTLossCompute(LossComputeBase):
     def _compute_loss(self, batch, output, output2, target_unk, target):
         scores_unk = self.generator(self._bottle(output))
         scores = self.generator2(self._bottle(output2))
+        scores = scores +scores_unk
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
@@ -240,7 +241,7 @@ class NMTLossCompute(LossComputeBase):
         loss_data = loss.data.clone()
         stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
 
-        return loss_unk, stats
+        return loss, stats
 
 
 def filter_shard_state(state, requires_grad=True, volatile=False):
