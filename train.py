@@ -211,11 +211,11 @@ def make_loss_compute(model, tgt_vocab, tgt_vocab_big, opt, train=True):
     """
     if opt.copy_attn:
         compute = onmt.modules.CopyGeneratorLossCompute(
-            model.generator2, tgt_vocab, tgt_vocab_big,opt.copy_attn_force,
+            model.generator, tgt_vocab, tgt_vocab_big,opt.copy_attn_force,
             opt.copy_loss_by_seqlength)
     else:
         compute = onmt.Loss.NMTLossCompute(
-            model.generator2, tgt_vocab, tgt_vocab_big,
+            model.generator, tgt_vocab, tgt_vocab_big,
             label_smoothing=opt.label_smoothing if train else 0.0)
 
     if use_gpu(opt):
