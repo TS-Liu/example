@@ -171,7 +171,7 @@ class NMTLossCompute(LossComputeBase):
             one_hot[0][self.padding_idx] = 0
             self.register_buffer('one_hot', one_hot)
         else:
-            weight = torch.ones(len(tgt_vocab_big))
+            weight = torch.ones(len(tgt_vocab))
             weight[self.padding_idx] = 0
             self.criterion = nn.NLLLoss(weight, size_average=False)
         self.confidence = 1.0 - label_smoothing
