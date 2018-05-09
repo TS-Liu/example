@@ -178,6 +178,7 @@ class NMTLossCompute(LossComputeBase):
             one_hot[0][self.padding_idx] = 0
             self.register_buffer('one_hot', one_hot)
 
+            self.criterion2 = nn.KLDivLoss(size_average=False)
             one_hot2 = torch.randn(1, len(tgt_vocab_big))
             one_hot2.fill_(label_smoothing / (len(tgt_vocab_big) - 2))
             one_hot2[0][self.padding_idx] = 0
