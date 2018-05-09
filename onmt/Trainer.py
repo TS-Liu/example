@@ -51,10 +51,10 @@ class Statistics(object):
         return 100 * (self.n_correct_unk / self.n_words_unk)
 
     def xent(self):
-        return self.loss_unk / self.n_words
+        return self.loss_unk / self.n_words_unk
 
     def ppl(self):
-        return math.exp(min(self.loss / self.n_words, 100))
+        return math.exp(min(self.loss_unk / self.n_words_unk, 100))
 
     def elapsed_time(self):
         return time.time() - self.start_time
@@ -76,7 +76,7 @@ class Statistics(object):
                self.ppl(),
                self.xent(),
                self.n_src_words / (t + 1e-5),
-               self.n_words / (t + 1e-5),
+               self.n_words_unk / (t + 1e-5),
                time.time() - start))
         sys.stdout.flush()
 
@@ -84,7 +84,7 @@ class Statistics(object):
         t = self.elapsed_time()
         experiment.add_scalar_value(prefix + "_ppl", self.ppl())
         experiment.add_scalar_value(prefix + "_accuracy", self.accuracy())
-        experiment.add_scalar_value(prefix + "_tgtper",  self.n_words / t)
+        experiment.add_scalar_value(prefix + "_tgtper",  self.n_words_unk / t)
         experiment.add_scalar_value(prefix + "_lr", lr)
 
     def log_tensorboard(self, prefix, writer, lr, step):
@@ -92,7 +92,7 @@ class Statistics(object):
         writer.add_scalar(prefix + "/xent", self.xent(), step)
         writer.add_scalar(prefix + "/ppl", self.ppl(), step)
         writer.add_scalar(prefix + "/accuracy", self.accuracy(), step)
-        writer.add_scalar(prefix + "/tgtper",  self.n_words / t, step)
+        writer.add_scalar(prefix + "/tgtper",  self.n_words_unk / t, step)
         writer.add_scalar(prefix + "/lr", lr, step)
 
 
