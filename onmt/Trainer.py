@@ -48,7 +48,7 @@ class Statistics(object):
         self.n_correct += stat.n_correct
 
     def accuracy(self):
-        return 100 * (self.n_correct / self.n_words)
+        return 100 * (self.n_correct_unk / self.n_words_unk)
 
     def xent(self):
         return self.loss / self.n_words
