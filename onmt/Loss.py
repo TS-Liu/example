@@ -67,7 +67,7 @@ class LossComputeBase(nn.Module):
         """
         return NotImplementedError
 
-    def monolithic_compute_loss(self, batch, output, attns):
+    def monolithic_compute_loss(self, batch, output, output2, attns):
         """
         Compute the forward loss for the batch.
 
@@ -82,12 +82,12 @@ class LossComputeBase(nn.Module):
             :obj:`onmt.Statistics`: loss statistics
         """
         range_ = (0, batch.tgt[0].size(0))
-        shard_state = self._make_shard_state(batch, output, range_, attns)
+        shard_state = self._make_shard_state(batch, output, output2, range_, attns)
         _, batch_stats = self._compute_loss(batch, **shard_state)
 
         return batch_stats
 
-    def sharded_compute_loss(self, batch, output, attns,
+    def sharded_compute_loss(self, batch, output, output2, attns,
                              cur_trunc, trunc_size, shard_size,
                              normalization):
         """Compute the forward loss and backpropagate.  Computation is done
@@ -119,7 +119,7 @@ class LossComputeBase(nn.Module):
         """
         batch_stats = onmt.Statistics()
         range_ = (cur_trunc, cur_trunc + trunc_size)
-        shard_state = self._make_shard_state(batch, output, range_, attns)
+        shard_state = self._make_shard_state(batch, output, output2, range_, attns)
 
         for shard in shards(shard_state, shard_size):
             loss, stats = self._compute_loss(batch, **shard)
@@ -128,7 +128,7 @@ class LossComputeBase(nn.Module):
 
         return batch_stats
 
-    def _stats(self, loss, scores, target):
+    def _stats(self, loss_unk, loss, scores_unk, scores, target_unk, target):
         """
         Args:
             loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
@@ -138,12 +138,17 @@ class LossComputeBase(nn.Module):
         Returns:
             :obj:`Statistics` : statistics for this batch.
         """
+        pred_unk = scores_unk.max(1)[1]
+        non_padding_unk = target_unk.ne(self.padding_idx)
+        num_correct_unk = pred_unk.eq(target) \
+                          .masked_select(non_padding_unk) \
+                          .sum()
         pred = scores.max(1)[1]
         non_padding = target.ne(self.padding_idx)
         num_correct = pred.eq(target) \
-                          .masked_select(non_padding) \
-                          .sum()
-        return onmt.Statistics(loss[0], non_padding.sum(), num_correct)
+            .masked_select(non_padding) \
+            .sum()
+        return onmt.Statistics(loss_unk[0], non_padding_unk.sum(), num_correct_unk, loss[0], non_padding.sum(), num_correct)
 
     def _bottle(self, v):
         return v.view(-1, v.size(2))
@@ -178,16 +183,19 @@ class NMTLossCompute(LossComputeBase):
             self.criterion = nn.NLLLoss(weight, size_average=False)
         self.confidence = 1.0 - label_smoothing
 
-    def _make_shard_state(self, batch, output, range_, attns=None):
+    def _make_shard_state(self, batch, output, output2, range_, attns=None):
         return {
             "output": output,
+            "output2": output2,
             "target_unk": batch.tgt[0][range_[0] + 1: range_[1]],
             "target": batch.tgt[1][range_[0] + 1: range_[1]],
         }
 
-    def _compute_loss(self, batch, output, target_unk, target):
-        scores = self.generator(self._bottle(output))
+    def _compute_loss(self, batch, output, output2, target_unk, target):
+        scores_unk = self.generator(self._bottle(output))
+        scores = self.generator(self._bottle(output2))
 
+        gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
         if self.confidence < 1:
             tdata = gtruth.data
@@ -199,15 +207,30 @@ class NMTLossCompute(LossComputeBase):
                 log_likelihood.index_fill_(0, mask, 0)
                 tmp_.index_fill_(0, mask, 0)
             gtruth = Variable(tmp_, requires_grad=False)
-        loss = self.criterion(scores, gtruth)
-        if self.confidence < 1:
-            # Default: report smoothed ppl.
-            # loss_data = -log_likelihood.sum(0)
-            loss_data = loss.data.clone()
-        else:
-            loss_data = loss.data.clone()
 
-        stats = self._stats(loss_data, scores.data, target.view(-1).data)
+            tdata_unk = gtruth_unk.data
+            mask_unk = torch.nonzero(tdata_unk.eq(self.padding_idx)).squeeze()
+            log_likelihood_unk = torch.gather(scores_unk.data, 1, tdata_unk.unsqueeze(1))
+            tmp__unk = self.one_hot.repeat(gtruth_unk.size(0), 1)
+            tmp__unk.scatter_(1, tdata_unk.unsqueeze(1), self.confidence)
+            if mask_unk.dim() > 0:
+                log_likelihood_unk.index_fill_(0, mask_unk, 0)
+                tmp__unk.index_fill_(0, mask_unk, 0)
+            gtruth_unk = Variable(tmp__unk, requires_grad=False)
+        loss_unk = self.criterion(scores_unk, gtruth_unk)
+        loss = self.criterion(scores, gtruth)
+        # if self.confidence < 1:
+        #     # Default: report smoothed ppl.
+        #     # loss_data = -log_likelihood.sum(0)
+        #     loss_data = loss.data.clone()
+        #     loss_data = loss.data.clone()
+        # else:
+        #     loss_data = loss.data.clone()
+        #     loss_data = loss.data.clone()
+        loss_data_unk = loss_unk.data.clone()
+        loss_data = loss.data.clone()
+        loss= loss+loss_unk
+        stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
 
         return loss, stats
 
