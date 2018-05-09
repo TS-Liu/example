@@ -265,7 +265,6 @@ class TransformerDecoder(nn.Module):
 
         # Run the forward pass of the TransformerDecoder.
         emb = self.embeddings(tgt)
-        _, __, hiden_len = emb.size()
         if state.previous_input is not None:
             emb = emb[state.previous_input.size(0):, ]
         assert emb.dim() == 3  # len x batch x embedding_dim
@@ -274,16 +273,13 @@ class TransformerDecoder(nn.Module):
         src_memory_bank = memory_bank.transpose(0, 1).contiguous()
 
         padding_idx = self.embeddings.word_padding_idx
-        unk_idx = self.embeddings.word_unk_idx
         src_pad_mask = Variable(src_words.data.eq(padding_idx).float())
         tgt_pad_mask = Variable(tgt_words.data.eq(padding_idx).float().unsqueeze(1))
-        tgt_unk_mask = Variable(tgt_words.data.eq(unk_idx).float().unsqueeze(1))
         tgt_pad_mask = tgt_pad_mask.repeat(1, tgt_len, 1)
         encoder_decoder_bias = torch.unsqueeze(src_pad_mask * -1e9, 1)
         decoder_local_mask = attention.get_local_mask(tgt_len) #[1, length, length]
         decoder_local_mask = decoder_local_mask.repeat(tgt_batch, 1, 1)
         decoder_bias = torch.gt(tgt_pad_mask + decoder_local_mask, 0).float() * -1e9
-        output_mask = (tgt_unk_mask * -1e9).transpose(0,2).repeat(1, hiden_len, 1).transpose(1,2)
 
         saved_inputs = []
         for i in range(self.num_layers):
@@ -299,7 +295,7 @@ class TransformerDecoder(nn.Module):
         output = self.layer_norm(output)
 
         # Process the result and update the attentions.
-        outputs = output.transpose(0, 1).contiguous()+output_mask
+        outputs = output.transpose(0, 1).contiguous()
         attn = attn.transpose(0, 1).contiguous()
 
         attns["std"] = attn
@@ -400,7 +396,7 @@ class Unk_TransformerDecoder(nn.Module):
         # unk_bias = torch.unsqueeze(unk_bias * -1e9, 1)   ########
         encoder_decoder_bias = torch.unsqueeze(src_pad_mask * -1e9, 1)
         decoder_bias = torch.gt(tgt_pad_mask + tgt_unk_mask, 0).float() * -1e9
-        output_mask = (tgt_no_unk_mask * -1e9).transpose(0,2).repeat(1, hiden_len, 1).transpose(1,2)
+
         saved_inputs = []
         for i in range(self.num_layers):
             prev_layer_input = None
@@ -409,14 +405,13 @@ class Unk_TransformerDecoder(nn.Module):
             output, attn, all_input \
                 = self.layer_stack[i](output, pre_layer_hiden.transpose(0,1), src_memory_bank, decoder_bias,
                                encoder_decoder_bias, previous_input=prev_layer_input)
-            output = output
             saved_inputs.append(all_input)
 
         saved_inputs = torch.stack(saved_inputs)
         output = self.layer_norm(output)
 
         # Process the result and update the attentions.
-        outputs = output.transpose(0, 1).contiguous()+output_mask
+        outputs = output.transpose(0, 1).contiguous()
         attn = attn.transpose(0, 1).contiguous()
 
         attns["std"] = attn
