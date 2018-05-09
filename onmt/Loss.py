@@ -140,7 +140,7 @@ class LossComputeBase(nn.Module):
         """
         pred_unk = scores_unk.max(1)[1]
         non_padding_unk = target_unk.ne(self.padding_idx)
-        num_correct_unk = pred_unk.eq(target) \
+        num_correct_unk = pred_unk.eq(target_unk) \
                           .masked_select(non_padding_unk) \
                           .sum()
         pred = scores.max(1)[1]
