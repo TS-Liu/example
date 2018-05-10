@@ -392,7 +392,7 @@ class Unk_TransformerDecoder(nn.Module):
         decoder_local_mask = decoder_local_mask.repeat(tgt_batch, 1, 1)
         decoder_bias = torch.gt(tgt_pad_mask + decoder_local_mask, 0).float() * -1e9
         ########
-        tgt_unk_mask = Variable(tgt2[:, :, 0].transpose(0, 1).data.eq(unk_idx).float().unsqueeze(1))  ########
+        tgt_unk_mask = Variable((tgt2[:, :, 0].transpose(0, 1)).data.eq(unk_idx).float()) ########
         decoder_decoder2_bias = torch.unsqueeze(tgt_unk_mask * -1e9, 1)  ########
 
 
