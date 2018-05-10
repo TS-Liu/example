@@ -129,7 +129,7 @@ class LossComputeBase(nn.Module):
 
         return batch_stats
 
-    def _stats(self, loss_unk, loss, scores_unk, scores, target_unk, target):
+    def _stats(self, LOSS, loss_unk, loss, scores_unk, scores, target_unk, target):
         """
         Args:
             loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
@@ -149,7 +149,7 @@ class LossComputeBase(nn.Module):
         num_correct = pred.eq(target) \
             .masked_select(non_padding) \
             .sum()
-        return onmt.Statistics(loss_unk[0], non_padding_unk.sum(), num_correct_unk, loss[0], non_padding.sum(), num_correct)
+        return onmt.Statistics(LOSS, loss_unk[0], non_padding_unk.sum(), num_correct_unk, loss[0], non_padding.sum(), num_correct)
 
     def _bottle(self, v):
         return v.view(-1, v.size(2))
@@ -248,7 +248,7 @@ class NMTLossCompute(LossComputeBase):
         LOSS =loss+loss_unk
         target_unk =target_unk * Variable(target_unk.data.ne(self.unk_idx).long())
         target = target * Variable(target_unk.data.eq(self.unk_idx).long())
-        stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
+        stats = self._stats(LOSS,loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
 
         return LOSS, stats
 
