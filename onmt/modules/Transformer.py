@@ -137,15 +137,21 @@ class Unk_DecoderLayer(EncoderBase):
                                                   hidden_size,
                                                   hidden_size,
                                                   dropout)
+        self.ma_l3 = attention.MultiheadAttention(hidden_size,
+                                                  hidden_size,
+                                                  hidden_size,
+                                                  dropout)
         self.ffn = layers.ffn_layer(hidden_size,
                                     filter_size,
                                     hidden_size,
                                     dropout)
         self.ma_l1_prenorm = layers.LayerNorm(hidden_size)
         self.ma_l2_prenorm = layers.LayerNorm(hidden_size)
+        self.ma_l3_prenorm = layers.LayerNorm(hidden_size)
         self.ffn_prenorm = layers.LayerNorm(hidden_size)
         self.ma_l1_postdropout = nn.Dropout(dropout)
         self.ma_l2_postdropout = nn.Dropout(dropout)
+        self.ma_l3_postdropout = nn.Dropout(dropout)
         self.ffn_postdropout = nn.Dropout(dropout)
 
     def forward(self, x, pre_layer_hiden, encoder_output, self_attention_bias,
@@ -157,12 +163,15 @@ class Unk_DecoderLayer(EncoderBase):
         if previous_input is not None:
             all_inputs = torch.cat((previous_input, norm_x), dim=1)
             self_attention_bias = None
-        y, _ = self.ma_l1(norm_x, pre_layer_hiden, self.num_heads, self_attention_bias)
+        y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
         x = self.ma_l1_postdropout(y) + x
-        # encoder decoder multihead attention
-        y, attn = self.ma_l2(self.ma_l2_prenorm(x), encoder_output,
-                             self.num_heads, encoder_decoder_bias)
+
+        y, _ = self.ma_l2(self.ma_l2_prenorm(x), pre_layer_hiden, self.num_heads, self_attention_bias)
         x = self.ma_l2_postdropout(y) + x
+        # encoder decoder multihead attention
+        y, attn = self.ma_l3(self.ma_l3_prenorm(x), encoder_output,
+                             self.num_heads, encoder_decoder_bias)
+        x = self.ma_l3_postdropout(y) + x
         # ffn layer
         y = self.ffn(self.ffn_prenorm(x))
         ans = self.ffn_postdropout(y) + x
