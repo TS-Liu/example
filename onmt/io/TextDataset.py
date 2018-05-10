@@ -511,7 +511,7 @@ class Field(torchtext.data.Field):
 
         if self.use_vocab:
             if self.sequential:
-                arr_small = [[self.vocab.stoi[x] for x in ex if self.vocab.stoi[x]==0] for ex in arr]
+                arr_small = [[self.vocab.stoi[x] for x in ex] for ex in arr]
                 arr_big = [[self.vocab_big.stoi[x] for x in ex if self.vocab.stoi[x]==0] for ex in arr]
                 arrs.append(arr_small)
                 arrs.append(arr_big)
