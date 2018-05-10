@@ -223,7 +223,7 @@ class Trainer(object):
 
             src = onmt.io.make_features(batch, 'src', self.data_type, 0)
             if self.data_type == 'text':
-                _,__, src_lengths = batch.src
+                _, src_lengths = batch.src
             else:
                 src_lengths = None
 
