@@ -128,10 +128,17 @@ def make_features(batch, side, data_type='text', n=0):
         of size (len x batch).
     """
     assert side in ['src', 'tgt']
-    if isinstance(batch.__dict__[side], tuple):
-        data = batch.__dict__[side][n]
+    if side =='src':
+        if isinstance(batch.__dict__[side], tuple):
+            data = batch.__dict__[side][0]
+        else:
+            data = batch.__dict__[side]
+
     else:
-        data = batch.__dict__[side][n]
+        if isinstance(batch.__dict__[side], tuple):
+            data = batch.__dict__[side][n]
+        else:
+            data = batch.__dict__[side][n]
 
     feat_start = side + "_feat_"
     keys = sorted([k for k in batch.__dict__ if feat_start in k])

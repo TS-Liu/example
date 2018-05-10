@@ -208,13 +208,13 @@ class TextDataset(ONMTDatasetBase):
         """
         fields = {}
 
-        fields["src"] = Field(
+        fields["src"] = torchtext.data.Field(
             pad_token=PAD_WORD,
             include_lengths=True)
 
         for j in range(n_src_features):
             fields["src_feat_"+str(j)] = \
-                Field(pad_token=PAD_WORD)
+                torchtext.data.Field(pad_token=PAD_WORD)
 
         fields["tgt"] = Field(
             init_token=BOS_WORD, eos_token=EOS_WORD,
@@ -235,7 +235,7 @@ class TextDataset(ONMTDatasetBase):
                     alignment[j, i, t] = 1
             return alignment
 
-        fields["src_map"] = Field(
+        fields["src_map"] = torchtext.data.Field(
             use_vocab=False, tensor_type=torch.FloatTensor,
             postprocessing=make_src, sequential=False)
 
