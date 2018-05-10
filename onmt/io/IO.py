@@ -234,6 +234,12 @@ def _build_field_vocab(field, counter, max_size, min_freq, max_size_big, min_fre
         if tok is not None))
     field.vocab = field.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
     field.vocab_big = field.vocab_cls_big(counter, specials=specials, max_size=max_size_big,min_freq=min_freq_big)
+def _build_field_vocab_src(field, counter, max_size, min_freq):
+    specials = list(OrderedDict.fromkeys(
+        tok for tok in [field.unk_token, field.pad_token, field.init_token,
+                        field.eos_token]
+        if tok is not None))
+    field.vocab = field.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
 
 
 def build_vocab(train_dataset_files, fields, data_type, share_vocab,
@@ -286,11 +292,9 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
         print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
 
     if data_type == 'text':
-        _build_field_vocab(fields["src"], counter["src"],
+        _build_field_vocab_src(fields["src"], counter["src"],
                            max_size=src_vocab_size,
                            min_freq=src_words_min_frequency,
-                           max_size_big=src_vocab_size,
-                           min_freq_big=src_words_min_frequency
                            )
         print(" * src vocab size: %d." % len(fields["src"].vocab))
 
@@ -298,7 +302,7 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
         # getting the last one is OK.
         for j in range(dataset.n_src_feats):
             key = "src_feat_" + str(j)
-            _build_field_vocab(fields[key], counter[key])
+            _build_field_vocab_src(fields[key], counter[key])
             print(" * %s vocab size: %d." % (key, len(fields[key].vocab)))
 
         # Merge the input and output vocabularies.
