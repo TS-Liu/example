@@ -6,6 +6,7 @@ import six
 import io
 import codecs
 import sys
+import numpy
 
 import torch
 import torchtext
@@ -513,8 +514,18 @@ class Field(torchtext.data.Field):
             if self.sequential:
                 arr_small = [[self.vocab.stoi[x] for x in ex] for ex in arr]
                 arr_big = [[self.vocab_big.stoi[x] for x in ex if self.vocab.stoi[x]==0] for ex in arr]
+                max_len = 0
+                for a in arr_big:
+                    if len(a)>max_len :
+                        max_len=len()
+                N = numpy.ones([len(arr_small),max_len])
+                i=0
+                for a in arr_big:
+                    N[i][:len(a)]=a
+                    i=i+1
+                N=list(N)
                 arrs.append(arr_small)
-                arrs.append(arr_big)
+                arrs.append(N)
             else:
                 arr_small= [self.vocab.stoi[x] for x in arr]
                 arr_big = [self.vocab_big.stoi[x] for x in arr if self.vocab.stoi[x]==0]
