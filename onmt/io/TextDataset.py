@@ -487,7 +487,7 @@ class Field(torchtext.data.Field):
                 for a in arr_big:
                     N[i][1:len(a)]=a
                     N[i][0] = 2
-                    N[i][max_len+1] = 3
+                    N[i][len(a)] = 3
                     i=i+1
                 N=list(N)
                 arrs.append(arr_small)
