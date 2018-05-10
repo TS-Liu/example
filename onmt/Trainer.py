@@ -302,7 +302,7 @@ class Trainer(object):
             dec_state = None
             src = onmt.io.make_features(batch, 'src', self.data_type, 0)
             if self.data_type == 'text':
-                _, __, src_lengths = batch.src
+                _, src_lengths = batch.src
                 report_stats.n_src_words += src_lengths.sum()
             else:
                 src_lengths = None
