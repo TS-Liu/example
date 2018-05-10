@@ -446,7 +446,42 @@ class Field(torchtext.data.Field):
             if tok is not None))
         self.vocab = self.vocab_cls(counter, specials=specials, max_size=max_size, min_freq=min_freq)
         self.vocab_big = self.vocab_cls_big(counter, specials=specials, max_size=max_size_big,min_freq=min_freq_big)
+    def pad_big(self, minibatch):
+        """Pad a batch of examples using this field.
 
+        Pads to self.fix_length if provided, otherwise pads to the length of
+        the longest example in the batch. Prepends self.init_token and appends
+        self.eos_token if those attributes are not None. Returns a tuple of the
+        padded list and a list containing lengths of each example if
+        `self.include_lengths` is `True` and `self.sequential` is `True`, else just
+        returns the padded list. If `self.sequential` is `False`, no padding is applied.
+        """
+        minibatch = list(minibatch)
+        if not self.sequential:
+            return minibatch
+        if self.fix_length is None:
+            max_len = max(len(x) for x in minibatch)
+        else:
+            max_len = self.fix_length + (
+                self.init_token, self.eos_token).count(None) - 2
+        padded, lengths = [], []
+        for x in minibatch:
+            if self.pad_first:
+                padded.append(
+                    [self.pad_token] * max(0, max_len - len(x)) +
+                    ([] if self.init_token is None else [self.init_token]) +
+                    list(x[-max_len:] if self.truncate_first else x[:max_len]) +
+                    ([] if self.eos_token is None else [self.eos_token]))
+            else:
+                padded.append(
+                    ([] if self.init_token is None else [self.init_token]) +
+                    list(x[-max_len:] if self.truncate_first else x[:max_len]) +
+                    ([] if self.eos_token is None else [self.eos_token]) +
+                    [self.pad_token] * max(0, max_len - len(x)))
+            lengths.append(len(padded[-1]) - max(0, max_len - len(x)))
+        if self.include_lengths:
+            return (padded, lengths)
+        return padded
     def numericalize(self, arr, device=None, train=True):
         """Turn a batch of examples that use this field into a Variable.
 
@@ -476,11 +511,15 @@ class Field(torchtext.data.Field):
 
         if self.use_vocab:
             if self.sequential:
-                arrs.append([[self.vocab.stoi[x] for x in ex] for ex in arr])
-                arrs.append([[self.vocab_big.stoi[x] for x in ex] for ex in arr])
+                arr_small = [[self.vocab.stoi[x] for x in ex if self.vocab.stoi[x]==0] for ex in arr]
+                arr_big = [[self.vocab_big.stoi[x] for x in ex if self.vocab.stoi[x]==0] for ex in arr]
+                arrs.append(arr_small)
+                arrs.append(arr_big)
             else:
-                arrs.append([self.vocab.stoi[x] for x in arr])
-                arrs.append([self.vocab_big.stoi[x] for x in arr])
+                arr_small= [self.vocab.stoi[x] for x in arr]
+                arr_big = [self.vocab_big.stoi[x] for x in arr if self.vocab.stoi[x]==0]
+                arrs.append(arr_small)
+                arrs.append(arr_big)
 
             if self.postprocessing is not None:
                 arrs[0] = self.postprocessing(arrs[0], self.vocab, train)
