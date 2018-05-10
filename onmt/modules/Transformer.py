@@ -163,8 +163,8 @@ class Unk_DecoderLayer(EncoderBase):
         if previous_input is not None:
             all_inputs = torch.cat((previous_input, norm_x), dim=1)
             self_attention_bias = None
-        # y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
-        # x = self.ma_l1_postdropout(y) + x
+        y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
+        x = self.ma_l1_postdropout(y) + x
 
         y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, self_attention_bias)
         x = self.ma_l2_postdropout(y) + x
