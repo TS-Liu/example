@@ -246,9 +246,10 @@ class NMTLossCompute(LossComputeBase):
         loss_data_unk = loss_unk.data.clone()
         loss_data = loss.data.clone()
         LOSS =loss+loss_unk
+        LOSS_data = LOSS.data.colne()
         target_unk =target_unk * Variable(target_unk.data.ne(self.unk_idx).long())
         target = target * Variable(target_unk.data.eq(self.unk_idx).long())
-        stats = self._stats(LOSS,loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
+        stats = self._stats(LOSS_data, loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
 
         return LOSS, stats
 
