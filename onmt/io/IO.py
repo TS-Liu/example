@@ -57,7 +57,7 @@ def load_fields_from_vocab(vocab, data_type="text"):
     fields = get_fields(data_type, n_src_features, n_tgt_features)
     for k, v in vocab.items():
         if k=='src':
-            v.stoi = defaultdict(lambda: 0, v[0].stoi)
+            v.stoi = defaultdict(lambda: 0, v.stoi)
             fields[k].vocab = v
         else :
         # Hack. Can't pickle defaultdict :(
