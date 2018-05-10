@@ -155,7 +155,7 @@ class Unk_DecoderLayer(EncoderBase):
         self.ffn_postdropout = nn.Dropout(dropout)
 
     def forward(self, x, pre_layer_hiden, encoder_output, self_attention_bias,
-                encoder_decoder_bias, previous_input=None):
+                encoder_decoder_bias,decoder_decoder2_bias, previous_input=None):
         # self multihead attention
         norm_x = self.ma_l1_prenorm(x)
         all_inputs = norm_x
@@ -166,7 +166,7 @@ class Unk_DecoderLayer(EncoderBase):
         y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
         x = self.ma_l1_postdropout(y) + x
 
-        y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, self_attention_bias)
+        y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, decoder_decoder2_bias)
         x = self.ma_l2_postdropout(y) + x
         # encoder decoder multihead attention
         y, attn = self.ma_l3(self.ma_l3_prenorm(x), encoder_output,
@@ -344,19 +344,19 @@ class Unk_TransformerDecoder(nn.Module):
             self._copy = True
         self.layer_norm = layers.LayerNorm(hidden_size)
 
-    def forward(self, tgt, pre_layer_emb, pre_layer_hiden, memory_bank, state, memory_lengths=None):
+    def forward(self, tgt2, tgt, pre_layer_hiden, memory_bank, state, memory_lengths=None):
         """
         See :obj:`onmt.modules.RNNDecoderBase.forward()`
         """
         # CHECKS
         src = state.src
         assert isinstance(state, TransformerDecoderState)
-        tgt_len, tgt_batch, _ = tgt.size()
+        tgt_len, tgt_batch, _ = tgt2.size()
         memory_len, memory_batch, _ = memory_bank.size()
         aeq(tgt_batch, memory_batch)
 
-        emb = self.embeddings(tgt)
-        _, __, hiden_len = emb.size()
+        emb = self.embeddings(tgt2)
+        # _, __, hiden_len = emb.size()
         state.previous_input = None
         if state.previous_input is not None:
             emb = emb[state.previous_input.size(0):, ]
@@ -365,14 +365,14 @@ class Unk_TransformerDecoder(nn.Module):
         output = emb.transpose(0, 1).contiguous()
 
         src_words = src[:, :, 0].transpose(0, 1)
-        tgt_words = tgt[:, :, 0].transpose(0, 1)
+        tgt_words = tgt2[:, :, 0].transpose(0, 1)
         src_batch, src_len = src_words.size()
         tgt_batch, tgt_len = tgt_words.size()
         aeq(tgt_batch, memory_batch, src_batch, tgt_batch)
         aeq(memory_len, src_len)
 
         if state.previous_input is not None:
-            tgt = torch.cat([state.previous_input, tgt], 0)
+            tgt2 = torch.cat([state.previous_input, tgt2], 0)
         # END CHECKS
 
         # Initialize return variables.
@@ -387,24 +387,19 @@ class Unk_TransformerDecoder(nn.Module):
         src_pad_mask = Variable(src_words.data.eq(padding_idx).float())
         tgt_pad_mask = Variable(tgt_words.data.eq(padding_idx).float().unsqueeze(1))
         tgt_pad_mask = tgt_pad_mask.repeat(1, tgt_len, 1)
-        tgt_unk_mask = Variable(tgt_words.data.eq(unk_idx).float().unsqueeze(1))   ########
-        # tgt_no_unk_mask = Variable(tgt_words.data.ne(unk_idx).float().unsqueeze(1))  ########
+        encoder_decoder_bias = torch.unsqueeze(src_pad_mask * -1e9, 1)
+        decoder_local_mask = attention.get_local_mask(tgt_len)  # [1, length, length]
+        decoder_local_mask = decoder_local_mask.repeat(tgt_batch, 1, 1)
+        decoder_bias = torch.gt(tgt_pad_mask + decoder_local_mask, 0).float() * -1e9
+        ########
+        tgt_unk_mask = Variable(tgt2[:, :, 0].transpose(0, 1).data.eq(unk_idx).float().unsqueeze(1))  ########
+        decoder_decoder2_bias = torch.unsqueeze(tgt_unk_mask * -1e9, 1)  ########
 
-        # unk_mask = tgt_unk_mask.view(tgt_batch,tgt_len).transpose(0,1).contiguous()
-        # out = []
-        # for i in range(tgt_batch):
-        #     out.append(output[i].masked_select(unk_mask[i]))
-        # unk_bias = Variable(-torch.ones(tgt_batch, tgt_len))
 
 
         # output = output*(tgt_unk_mask.repeat(1, hiden_len, 1).transpose(1,2)) + pre_layer_emb.transpose(0,1)*(tgt_no_unk_mask.repeat(1, hiden_len, 1).transpose(1,2))
 
-        tgt_unk_mask = tgt_unk_mask.repeat(1, tgt_len, 1)   ########（2*11*11）
-        # unk_bias = Variable(tgt_words.data.eq(unk_idx).float().unsqueeze(1))      ########
-        # tgt = tgt.masked_select(unk_bias)
-        # unk_bias = torch.unsqueeze(unk_bias * -1e9, 1)   ########
-        encoder_decoder_bias = torch.unsqueeze(src_pad_mask * -1e9, 1)
-        decoder_bias = torch.gt(tgt_pad_mask + tgt_unk_mask, 0).float() * -1e9
+
 
         saved_inputs = []
         for i in range(self.num_layers):
@@ -413,7 +408,7 @@ class Unk_TransformerDecoder(nn.Module):
                 prev_layer_input = state.previous_layer_inputs[i]
             output, attn, all_input \
                 = self.layer_stack[i](output, pre_layer_hiden.transpose(0,1), src_memory_bank, decoder_bias,
-                               encoder_decoder_bias, previous_input=prev_layer_input)
+                               encoder_decoder_bias, decoder_decoder2_bias, previous_input=prev_layer_input)
             saved_inputs.append(all_input)
 
         saved_inputs = torch.stack(saved_inputs)
