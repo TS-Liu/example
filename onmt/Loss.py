@@ -204,10 +204,12 @@ class NMTLossCompute(LossComputeBase):
     def _compute_loss(self, batch, output, output2, target_unk, target):
         scores_unk = self.generator(self._bottle(output))
         scores = self.generator2(self._bottle(output2))
-        _, vocab_size = scores.size()
-        tgt_unk_mask = Variable(target_unk.data.eq(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2)  ########
-        tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2)
-        scores = scores*tgt_unk_mask +scores_unk*tgt_no_unk_mask
+        _, vocab_size = scores_unk.size()
+        _, vocab_size_big = scores.size()
+        tgt_unk_mask = Variable(target_unk.data.eq(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).view(-1,vocab_size_big)  ########
+        tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).view(-1,vocab_size)
+        scores = scores*tgt_unk_mask
+        scores_unk = scores_unk*tgt_no_unk_mask
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
@@ -243,9 +245,10 @@ class NMTLossCompute(LossComputeBase):
         #     loss_data = loss.data.clone()
         loss_data_unk = loss_unk.data.clone()
         loss_data = loss.data.clone()
-        stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
+        LOSS =loss+loss_unk
+        stats = self._stats(loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data*tgt_no_unk_mask, target.view(-1).data*tgt_unk_mask)
 
-        return loss, stats
+        return LOSS, stats
 
 
 def filter_shard_state(state, requires_grad=True, volatile=False):
