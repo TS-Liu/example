@@ -485,7 +485,7 @@ class Field(torchtext.data.Field):
                 N = numpy.ones([len(arr_small),max_len+2]).astype(int).tolist()
                 i=0
                 for a in arr_big:
-                    if len[a]>0:
+                    if len(a)>0:
                         N[i][1:len(a)]=a
                         N[i][len(a)] = 3
                     else :
