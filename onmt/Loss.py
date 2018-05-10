@@ -206,8 +206,8 @@ class NMTLossCompute(LossComputeBase):
         scores = self.generator2(self._bottle(output2))
         _, vocab_size = scores_unk.size()
         _, vocab_size_big = scores.size()
-        tgt_unk_mask = Variable(target_unk.data.eq(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).view(-1,vocab_size_big)  ########
-        tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).view(-1,vocab_size)
+        tgt_unk_mask = Variable(target_unk.data.eq(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).view(-1,vocab_size_big).contiguous()  ########
+        tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).view(-1,vocab_size).contiguous()
         scores = scores*tgt_unk_mask
         scores_unk = scores_unk*tgt_no_unk_mask
 
