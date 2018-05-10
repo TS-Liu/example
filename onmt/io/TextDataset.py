@@ -486,8 +486,8 @@ class Field(torchtext.data.Field):
                 i=0
                 for a in arr_big:
                     if len(a)>0:
-                        N[i][1:len(a)]=a
-                        N[i][len(a)] = 3
+                        N[i][1:len(a)+1]=a
+                        N[i][len(a)+1] = 3
                     else :
                         N[i][1] = 3
                     N[i][0] = 2
