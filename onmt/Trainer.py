@@ -50,13 +50,13 @@ class Statistics(object):
         self.n_correct += stat.n_correct
 
     def accuracy(self):
-        return 100 * ((self.n_correct+self.n_correct_unk) / (self.n_words*2))
+        return 100 * (self.n_correct_unk / (self.n_words))
 
     def xent(self):
-        return self.LOSS / self.n_words
+        return self.loss_unk / self.n_words
 
     def ppl(self):
-        return math.exp(min(self.LOSS / self.n_words, 100))
+        return math.exp(min(self.loss_unk / self.n_words, 100))
 
     def elapsed_time(self):
         return time.time() - self.start_time
