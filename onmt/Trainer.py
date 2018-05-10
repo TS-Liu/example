@@ -263,14 +263,19 @@ class Trainer(object):
         real_generator = (real_model.generator.module
                           if isinstance(real_model.generator, nn.DataParallel)
                           else real_model.generator)
+        real_generator2 = (real_model.generator2.module
+                          if isinstance(real_model.generator2, nn.DataParallel)
+                          else real_model.generator2)
 
         model_state_dict = real_model.state_dict()
         model_state_dict = {k: v for k, v in model_state_dict.items()
                             if 'generator' not in k}
         generator_state_dict = real_generator.state_dict()
+        generator_state_dict2 = real_generator2.state_dict()
         checkpoint = {
             'model': model_state_dict,
             'generator': generator_state_dict,
+            'generator2': generator_state_dict2,
             'vocab': onmt.io.save_fields_to_vocab(fields),
             'opt': opt,
             'epoch': epoch,

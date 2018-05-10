@@ -518,7 +518,7 @@ class Field(torchtext.data.Field):
                 for a in arr_big:
                     if len(a)>max_len :
                         max_len=len(a)
-                N = numpy.ones([len(arr_small),max_len]).tolist()
+                N = numpy.ones([len(arr_small),max_len]).astype(int).tolist()
                 i=0
                 for a in arr_big:
                     N[i][:len(a)]=a
