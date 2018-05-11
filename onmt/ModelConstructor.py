@@ -221,7 +221,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
             nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab_big)),
             nn.LogSoftmax())
         if model_opt.share_decoder_embeddings:
-            generator2[0].weight = decoder.embeddings.word_lut.weight
+            generator2[0].weight = decoder_2.embeddings.word_lut.weight
     else:
         generator2 = CopyGenerator(model_opt.rnn_size,
                                       fields["tgt"].vocab_big)
@@ -231,7 +231,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         print('Loading model parameters.')
         model.load_state_dict(checkpoint['model'])
         generator.load_state_dict(checkpoint['generator'])
-        generator2.load_state_dict(checkpoint['generator_2'])
+        generator2.load_state_dict(checkpoint['generator2'])
     else:
         if model_opt.param_init != 0.0:
             print('Intializing model parameters.')
