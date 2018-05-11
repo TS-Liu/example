@@ -56,7 +56,7 @@ class TranslationBuilder(object):
                         translation_batch["scores"],
                         translation_batch["attention"],
                         translation_batch["gold_score"],
-                        batch.indices.data),
+                        batch.indices[0].data),
                     key=lambda x: x[-1])))
 
         # Sorting
