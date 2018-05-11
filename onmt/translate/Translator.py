@@ -205,7 +205,7 @@ class Translator(object):
     def _run_target(self, batch, data):
         data_type = data.data_type
         if data_type == 'text':
-            _, __, src_lengths = batch.src
+            _, src_lengths = batch.src
         else:
             src_lengths = None
         src = onmt.io.make_features(batch, 'src', data_type)
