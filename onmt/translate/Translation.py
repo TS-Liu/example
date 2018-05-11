@@ -60,7 +60,7 @@ class TranslationBuilder(object):
                     key=lambda x: x[-1])))
 
         # Sorting
-        inds, perm = torch.sort(batch.indices.data)
+        inds, perm = torch.sort(batch.indices[0].data)
         data_type = self.data.data_type
         if data_type == 'text':
             src = batch.src[0].data.index_select(1, perm)
