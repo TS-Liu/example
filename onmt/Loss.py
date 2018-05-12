@@ -39,6 +39,8 @@ class LossComputeBase(nn.Module):
         self.tgt_vocab = tgt_vocab
         self.tgt_vocab_big = tgt_vocab_big
         self.padding_idx = tgt_vocab.stoi[onmt.io.PAD_WORD]
+        self.BOS_idx = tgt_vocab.stoi[onmt.io.BOS_WORD]
+        self.EOS_idx = tgt_vocab.stoi[onmt.io.EOS_WORD]
         self.unk_idx = tgt_vocab.stoi[onmt.io.UNK]
 
     def _make_shard_state(self, batch, output, range_, attns=None, attns_2= None):
@@ -206,16 +208,16 @@ class NMTLossCompute(LossComputeBase):
         scores = self.generator2(self._bottle(output2))
         _, vocab_size = scores_unk.size()
         _, vocab_size_big = scores.size()
-        tgt_no_pad_mask = Variable(target.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).contiguous().view(-1,vocab_size_big)  ########
-        tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).contiguous().view(-1,vocab_size)
-        scores = scores*tgt_no_pad_mask
-        scores_unk = scores_unk*tgt_no_unk_mask
+        #tgt_no_pad_mask = Variable(target.data.ne(self.padding_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).contiguous().view(-1,vocab_size_big)  ########
+        #tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).contiguous().view(-1,vocab_size)
+        #scores = scores*tgt_no_pad_mask
+        #scores_unk = scores_unk*tgt_no_unk_mask
 
         gtruth_unk = target_unk.view(-1)
         gtruth = target.view(-1)
         if self.confidence < 1:
             tdata = gtruth.data
-            mask = torch.nonzero(tdata.eq(self.padding_idx)).squeeze()
+            mask = torch.nonzero(tdata.eq(self.padding_idx)+tdata.eq(self.BOS_idx)+tdata.eq(self.EOS_idx)).squeeze()
             log_likelihood = torch.gather(scores.data, 1, tdata.unsqueeze(1))
             tmp_ = self.one_hot2.repeat(gtruth.size(0), 1)
             tmp_.scatter_(1, tdata.unsqueeze(1), self.confidence)
@@ -225,7 +227,7 @@ class NMTLossCompute(LossComputeBase):
             gtruth = Variable(tmp_, requires_grad=False)
 
             tdata_unk = gtruth_unk.data
-            mask_unk = torch.nonzero(tdata_unk.eq(self.padding_idx)).squeeze()
+            mask_unk = torch.nonzero(tdata_unk.eq(self.padding_idx)+tdata_unk.eq(self.unk_idx)).squeeze()
             log_likelihood_unk = torch.gather(scores_unk.data, 1, tdata_unk.unsqueeze(1))
             tmp__unk = self.one_hot.repeat(gtruth_unk.size(0), 1)
             tmp__unk.scatter_(1, tdata_unk.unsqueeze(1), self.confidence)
@@ -247,11 +249,11 @@ class NMTLossCompute(LossComputeBase):
         loss_data = loss.data.clone()
         LOSS =loss+loss_unk
         LOSS_data = LOSS.data.clone()
-        target_unk =target_unk * Variable(target_unk.data.ne(self.unk_idx).long())
-        target = target * Variable(target.data.ne(self.padding_idx).long())
+        # target_unk =target_unk * Variable(target_unk.data.ne(self.unk_idx).long())
+        # target = target * Variable(target.data.ne(self.padding_idx).long())
         stats = self._stats(LOSS_data, loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
 
-        return loss_unk, stats
+        return LOSS, stats
 
 
 def filter_shard_state(state, requires_grad=True, volatile=False):
