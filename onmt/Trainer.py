@@ -319,7 +319,7 @@ class Trainer(object):
                 if self.grad_accum_count == 1:
                     self.model.zero_grad()
                 outputs, attns, dec_state, outputs_2, attns_2, dec_state_2 = \
-                    self.model(src, tgt, tgt_2, src_lengths, dec_state)
+                    self.model(src, tgt, tgt_2, src_lengths, dec_state, dec_state_2)
 
                 # 3. Compute loss in shards for memory efficiency.
                 batch_stats = self.train_loss.sharded_compute_loss(
@@ -335,6 +335,8 @@ class Trainer(object):
                 # If truncated, don't backprop fully.
                 if dec_state is not None:
                     dec_state.detach()
+                if dec_state_2 is not None:
+                    dec_state_2.detach()
 
         if self.grad_accum_count > 1:
             self.optim.step()

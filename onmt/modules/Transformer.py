@@ -166,7 +166,7 @@ class Unk_DecoderLayer(EncoderBase):
         y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
         x = self.ma_l1_postdropout(y) + x
 
-        y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, decoder_decoder2_bias)
+        y, _ = self.ma_l2(self.ma_l2_prenorm(x), pre_layer_hiden, self.num_heads, decoder_decoder2_bias)
         x = self.ma_l2_postdropout(y) + x
         # encoder decoder multihead attention
         y, attn = self.ma_l3(self.ma_l3_prenorm(x), encoder_output,
@@ -385,12 +385,12 @@ class Unk_TransformerDecoder(nn.Module):
         padding_idx = self.embeddings.word_padding_idx
         unk_idx = self.embeddings.word_unk_idx    ########
         src_pad_mask = Variable(src_words.data.eq(padding_idx).float())
-        tgt_pad_mask = Variable(tgt_words.data.eq(padding_idx).float().unsqueeze(1))
-        tgt_pad_mask = tgt_pad_mask.repeat(1, tgt_len, 1)
+        tgt_unk_pad_mask = Variable(tgt_words.data.eq(padding_idx).float().unsqueeze(1))
+        tgt_unk_pad_mask = tgt_unk_pad_mask.repeat(1, tgt_len, 1)
         encoder_decoder_bias = torch.unsqueeze(src_pad_mask * -1e9, 1)
         decoder_local_mask = attention.get_local_mask(tgt_len)  # [1, length, length]
         decoder_local_mask = decoder_local_mask.repeat(tgt_batch, 1, 1)
-        decoder_bias = torch.gt(tgt_pad_mask + decoder_local_mask, 0).float() * -1e9
+        decoder_bias = torch.gt(tgt_unk_pad_mask + decoder_local_mask, 0).float() * -1e9
         ########
         tgt_pad_mask = Variable((tgt[:, :, 0].transpose(0, 1)).data.eq(padding_idx).float()) ########
         tgt_unk_mask = Variable((tgt[:, :, 0].transpose(0, 1)).data.eq(unk_idx).float())  ########
