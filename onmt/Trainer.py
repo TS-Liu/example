@@ -300,6 +300,7 @@ class Trainer(object):
                 trunc_size = target_size
 
             dec_state = None
+            dec_state_2 = None
             src = onmt.io.make_features(batch, 'src', self.data_type, 0)
             if self.data_type == 'text':
                 _, src_lengths = batch.src
