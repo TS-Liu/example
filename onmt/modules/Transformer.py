@@ -400,7 +400,7 @@ class Unk_TransformerDecoder(nn.Module):
 
         # output = output*(tgt_unk_mask.repeat(1, hiden_len, 1).transpose(1,2)) + pre_layer_emb.transpose(0,1)*(tgt_no_unk_mask.repeat(1, hiden_len, 1).transpose(1,2))
 
-        pre_layer_hiden= pre_layer_hiden.data
+        pre_layer_hiden= Variable(pre_layer_hiden.data, requires_grad=False)
         saved_inputs = []
         for i in range(self.num_layers):
             prev_layer_input = None
