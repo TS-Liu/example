@@ -154,8 +154,8 @@ class Unk_DecoderLayer(EncoderBase):
         self.ma_l3_postdropout = nn.Dropout(dropout)
         self.ffn_postdropout = nn.Dropout(dropout)
 
-    def forward(self, x, pre_layer_hiden, encoder_output, self_attention_bias,
-                encoder_decoder_bias,decoder_decoder2_bias, previous_input=None):
+    def forward(self, x, encoder_output, self_attention_bias,
+                encoder_decoder_bias, previous_input=None):
         # self multihead attention
         norm_x = self.ma_l1_prenorm(x)
         all_inputs = norm_x
@@ -163,11 +163,11 @@ class Unk_DecoderLayer(EncoderBase):
         if previous_input is not None:
             all_inputs = torch.cat((previous_input, norm_x), dim=1)
             self_attention_bias = None
-        # y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
-        # x = self.ma_l1_postdropout(y) + x
+        y, _ = self.ma_l1(norm_x, all_inputs, self.num_heads, self_attention_bias)
+        x = self.ma_l1_postdropout(y) + x
 
-        y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, decoder_decoder2_bias)
-        x = self.ma_l2_postdropout(y) + x
+        # y, _ = self.ma_l2(norm_x, pre_layer_hiden, self.num_heads, decoder_decoder2_bias)
+        # x = self.ma_l2_postdropout(y) + x
         # encoder decoder multihead attention
         y, attn = self.ma_l3(self.ma_l3_prenorm(x), encoder_output,
                              self.num_heads, encoder_decoder_bias)
@@ -329,7 +329,7 @@ class Unk_TransformerDecoder(nn.Module):
 
         # Basic attributes.
         self.decoder_type = 'transformer'
-        self.num_layers = 1
+        self.num_layers = 6
         self.embeddings = embeddings
 
         self.layer_stack = nn.ModuleList([
@@ -344,7 +344,7 @@ class Unk_TransformerDecoder(nn.Module):
             self._copy = True
         self.layer_norm = layers.LayerNorm(hidden_size)
 
-    def forward(self, tgt2, tgt, pre_layer_hiden, memory_bank, state, memory_lengths=None):
+    def forward(self, tgt2, memory_bank, state, memory_lengths=None):
         """
         See :obj:`onmt.modules.RNNDecoderBase.forward()`
         """
@@ -392,9 +392,6 @@ class Unk_TransformerDecoder(nn.Module):
         decoder_local_mask = decoder_local_mask.repeat(tgt_batch, 1, 1)
         decoder_bias = torch.gt(tgt_unk_pad_mask + decoder_local_mask, 0).float() * -1e9
         ########
-        tgt_pad_mask = Variable((tgt[:, :, 0].transpose(0, 1)).data.eq(padding_idx).float()) ########
-        tgt_unk_mask = Variable((tgt[:, :, 0].transpose(0, 1)).data.eq(unk_idx).float())  ########
-        decoder_decoder2_bias = torch.unsqueeze((tgt_pad_mask+tgt_unk_mask) * -1e9, 1)  ########
 
 
 
@@ -408,8 +405,8 @@ class Unk_TransformerDecoder(nn.Module):
             if state.previous_input is not None:
                 prev_layer_input = state.previous_layer_inputs[i]
             output, attn, all_input \
-                = self.layer_stack[i](output, pre_layer_hiden.transpose(0,1), src_memory_bank, decoder_bias,
-                               encoder_decoder_bias, decoder_decoder2_bias, previous_input=prev_layer_input)
+                = self.layer_stack[i](output, src_memory_bank, decoder_bias,
+                               encoder_decoder_bias, previous_input=prev_layer_input)
             saved_inputs.append(all_input)
 
         saved_inputs = torch.stack(saved_inputs)
