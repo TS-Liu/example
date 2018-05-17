@@ -32,10 +32,10 @@ class LossComputeBase(nn.Module):
              torchtext vocab object representing the target output
         normalzation (str): normalize by "sents" or "tokens"
     """
-    def __init__(self, generator, generator2, tgt_vocab, tgt_vocab_big):
+    def __init__(self, generator, tgt_vocab, tgt_vocab_big): #, generator2
         super(LossComputeBase, self).__init__()
         self.generator = generator
-        self.generator2 = generator2
+        #self.generator2 = generator2
         self.tgt_vocab = tgt_vocab
         self.tgt_vocab_big = tgt_vocab_big
         self.padding_idx = tgt_vocab.stoi[onmt.io.PAD_WORD]
@@ -164,9 +164,9 @@ class NMTLossCompute(LossComputeBase):
     """
     Standard NMT Loss Computation.
     """
-    def __init__(self, generator, generator2, tgt_vocab, tgt_vocab_big, normalization="sents",
-                 label_smoothing=0.0):
-        super(NMTLossCompute, self).__init__(generator, generator2, tgt_vocab, tgt_vocab_big)
+    def __init__(self, generator, tgt_vocab, tgt_vocab_big, normalization="sents",
+                 label_smoothing=0.0): #generator2,
+        super(NMTLossCompute, self).__init__(generator, tgt_vocab, tgt_vocab_big) #, generator2
         assert (label_smoothing >= 0.0 and label_smoothing <= 1.0)
         if label_smoothing > 0:
             # When label smoothing is turned on,
