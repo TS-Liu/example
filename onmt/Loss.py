@@ -70,7 +70,7 @@ class LossComputeBase(nn.Module):
         """
         return NotImplementedError
 
-    def monolithic_compute_loss(self, batch, output, output2, attns, attns2):
+    def monolithic_compute_loss(self, batch, output, attns): #, output2 , attns2
         """
         Compute the forward loss for the batch.
 
@@ -85,12 +85,12 @@ class LossComputeBase(nn.Module):
             :obj:`onmt.Statistics`: loss statistics
         """
         range_ = (0, batch.tgt[0].size(0))
-        shard_state = self._make_shard_state(batch, output, output2, range_, attns, attns2)
+        shard_state = self._make_shard_state(batch, output, range_, attns) #, output2, , attns2
         _, batch_stats = self._compute_loss(batch, **shard_state)
 
         return batch_stats
-
-    def sharded_compute_loss(self, batch, output, output2, attns, attns_2,
+    #output2, attns_2,
+    def sharded_compute_loss(self, batch, output,  attns,
                              cur_trunc, trunc_size, shard_size,
                              normalization):
         """Compute the forward loss and backpropagate.  Computation is done
@@ -131,7 +131,7 @@ class LossComputeBase(nn.Module):
 
         return batch_stats
 
-    def _stats(self, LOSS, loss_unk, loss, scores_unk, scores, target_unk, target):
+    def _stats(self, loss_unk, scores_unk, target_unk): #LOSS, loss,  , target , scores
         """
         Args:
             loss (:obj:`FloatTensor`): the loss computed by the loss criterion.
@@ -146,13 +146,13 @@ class LossComputeBase(nn.Module):
         num_correct_unk = pred_unk.eq(target_unk) \
                           .masked_select(non_padding_unk) \
                           .sum()
-        pred = scores.max(1)[1]
-        non_padding = target.ne(self.padding_idx)
-        num_correct = pred.eq(target) \
-            .masked_select(non_padding) \
-            .sum()
-        return onmt.Statistics(LOSS[0], loss_unk[0], non_padding_unk.sum(), num_correct_unk, loss[0], non_padding.sum(), num_correct)
-
+        # pred = scores.max(1)[1]
+        # non_padding = target.ne(self.padding_idx)
+        # num_correct = pred.eq(target) \
+        #     .masked_select(non_padding) \
+        #     .sum()
+        return onmt.Statistics(loss_unk[0], non_padding_unk.sum(), num_correct_unk)
+        #LOSS[0], , loss[0], non_padding.sum(), num_correct
     def _bottle(self, v):
         return v.view(-1, v.size(2))
 
@@ -195,36 +195,36 @@ class NMTLossCompute(LossComputeBase):
             self.criterion2 = nn.NLLLoss(weight2, size_average=False)
         self.confidence = 1.0 - label_smoothing
 
-    def _make_shard_state(self, batch, output, output2, range_, attns=None, attns_2=None):
+    def _make_shard_state(self, batch, output, range_, attns=None): #, output2 , attns_2=None
         return {
             "output": output,
-            "output2": output2,
+            #"output2": output2,
             "target_unk": batch.tgt[0][range_[0] + 1: range_[1]],
-            "target": batch.tgt[1][range_[0] + 1: range_[1]],
+            #"target": batch.tgt[1][range_[0] + 1: range_[1]],
         }
 
-    def _compute_loss(self, batch, output, output2, target_unk, target):
+    def _compute_loss(self, batch, output, target_unk): #, output2 , target
         scores_unk = self.generator(self._bottle(output))
-        scores = self.generator2(self._bottle(output2))
+        #scores = self.generator2(self._bottle(output2))
         _, vocab_size = scores_unk.size()
-        _, vocab_size_big = scores.size()
+        #_, vocab_size_big = scores.size()
         #tgt_no_pad_mask = Variable(target.data.ne(self.padding_idx).float().unsqueeze(1)).repeat(1, vocab_size_big, 1).transpose(1,2).contiguous().view(-1,vocab_size_big)  ########
         #tgt_no_unk_mask = Variable(target_unk.data.ne(self.unk_idx).float().unsqueeze(1)).repeat(1, vocab_size, 1).transpose(1,2).contiguous().view(-1,vocab_size)
         #scores = scores*tgt_no_pad_mask
         #scores_unk = scores_unk*tgt_no_unk_mask
 
         gtruth_unk = target_unk.view(-1)
-        gtruth = target.view(-1)
+        #gtruth = target.view(-1)
         if self.confidence < 1:
-            tdata = gtruth.data
-            mask = torch.nonzero(tdata.eq(self.padding_idx)+tdata.eq(self.BOS_idx)+tdata.eq(self.EOS_idx)).squeeze()
-            log_likelihood = torch.gather(scores.data, 1, tdata.unsqueeze(1))
-            tmp_ = self.one_hot2.repeat(gtruth.size(0), 1)
-            tmp_.scatter_(1, tdata.unsqueeze(1), self.confidence)
-            if mask.dim() > 0:
-                log_likelihood.index_fill_(0, mask, 0)
-                tmp_.index_fill_(0, mask, 0)
-            gtruth = Variable(tmp_, requires_grad=False)
+            # tdata = gtruth.data
+            # mask = torch.nonzero(tdata.eq(self.padding_idx)+tdata.eq(self.BOS_idx)+tdata.eq(self.EOS_idx)).squeeze()
+            # log_likelihood = torch.gather(scores.data, 1, tdata.unsqueeze(1))
+            # tmp_ = self.one_hot2.repeat(gtruth.size(0), 1)
+            # tmp_.scatter_(1, tdata.unsqueeze(1), self.confidence)
+            # if mask.dim() > 0:
+            #     log_likelihood.index_fill_(0, mask, 0)
+            #     tmp_.index_fill_(0, mask, 0)
+            # gtruth = Variable(tmp_, requires_grad=False)
 
             tdata_unk = gtruth_unk.data
             mask_unk = torch.nonzero(tdata_unk.eq(self.padding_idx)+tdata_unk.eq(self.unk_idx)).squeeze()
@@ -236,7 +236,7 @@ class NMTLossCompute(LossComputeBase):
                 tmp__unk.index_fill_(0, mask_unk, 0)
             gtruth_unk = Variable(tmp__unk, requires_grad=False)
         loss_unk = self.criterion(scores_unk, gtruth_unk)
-        loss = self.criterion2(scores, gtruth)
+        #loss = self.criterion2(scores, gtruth)
         # if self.confidence < 1:
         #     # Default: report smoothed ppl.
         #     # loss_data = -log_likelihood.sum(0)
@@ -246,14 +246,14 @@ class NMTLossCompute(LossComputeBase):
         #     loss_data = loss.data.clone()
         #     loss_data = loss.data.clone()
         loss_data_unk = loss_unk.data.clone()
-        loss_data = loss.data.clone()
-        LOSS =loss+loss_unk
-        LOSS_data = LOSS.data.clone()
+        #loss_data = loss.data.clone()
+        #LOSS =loss+loss_unk
+        #LOSS_data = LOSS.data.clone()
         # target_unk =target_unk * Variable(target_unk.data.ne(self.unk_idx).long())
         # target = target * Variable(target.data.ne(self.padding_idx).long())
-        stats = self._stats(LOSS_data, loss_data_unk, loss_data, scores_unk.data, scores.data, target_unk.view(-1).data, target.view(-1).data)
-
-        return LOSS, stats
+        stats = self._stats(loss_data_unk, scores_unk.data,  target_unk.view(-1).data)
+        #LOSS_data, , loss_data scores.data,  , target.view(-1).data
+        return loss_unk, stats
 
 
 def filter_shard_state(state, requires_grad=True, volatile=False):

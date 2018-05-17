@@ -29,34 +29,34 @@ class Statistics(object):
     * perplexity
     * elapsed time
     """
-    def __init__(self, LOSS=0, loss_unk=0, n_words_unk=0, n_correct_unk=0, loss=0, n_words=0, n_correct=0):
-        self.LOSS = LOSS
+    def __init__(self, loss_unk=0, n_words_unk=0, n_correct_unk=0): #LOSS=0,  , loss=0, n_words=0, n_correct=0
+        #self.LOSS = LOSS
         self.loss_unk = loss_unk
         self.n_words_unk = n_words_unk
         self.n_correct_unk = n_correct_unk
-        self.loss = loss
-        self.n_words = n_words
-        self.n_correct = n_correct
+        #self.loss = loss
+        #self.n_words = n_words
+        #self.n_correct = n_correct
         self.n_src_words = 0
         self.start_time = time.time()
 
     def update(self, stat):
-        self.LOSS += stat.LOSS
+        #self.LOSS += stat.LOSS
         self.loss_unk += stat.loss_unk
         self.n_words_unk += stat.n_words_unk
         self.n_correct_unk += stat.n_correct_unk
-        self.loss += stat.loss
-        self.n_words += stat.n_words
-        self.n_correct += stat.n_correct
+        #self.loss += stat.loss
+        #self.n_words += stat.n_words
+        #self.n_correct += stat.n_correct
 
     def accuracy(self):
-        return 100 * ((self.n_correct+self.n_correct_unk) / (self.n_words_unk))
+        return 100 * ((self.n_correct_unk) / (self.n_words_unk)) #self.n_correct+
 
     def xent(self):
-        return self.LOSS / self.n_words_unk
+        return self.loss_unk / self.n_words_unk
 
     def ppl(self):
-        return math.exp(min(self.LOSS / (self.n_words_unk), 100))
+        return math.exp(min(self.loss_unk / (self.n_words_unk), 100))
 
     def elapsed_time(self):
         return time.time() - self.start_time
@@ -86,7 +86,7 @@ class Statistics(object):
         t = self.elapsed_time()
         experiment.add_scalar_value(prefix + "_ppl", self.ppl())
         experiment.add_scalar_value(prefix + "_accuracy", self.accuracy())
-        experiment.add_scalar_value(prefix + "_tgtper",  self.n_words / t)
+        experiment.add_scalar_value(prefix + "_tgtper",  self.n_words_unk / t)
         experiment.add_scalar_value(prefix + "_lr", lr)
 
     def log_tensorboard(self, prefix, writer, lr, step):
@@ -94,7 +94,7 @@ class Statistics(object):
         writer.add_scalar(prefix + "/xent", self.xent(), step)
         writer.add_scalar(prefix + "/ppl", self.ppl(), step)
         writer.add_scalar(prefix + "/accuracy", self.accuracy(), step)
-        writer.add_scalar(prefix + "/tgtper",  self.n_words / t, step)
+        writer.add_scalar(prefix + "/tgtper",  self.n_words_unk / t, step)
         writer.add_scalar(prefix + "/lr", lr, step)
 
 
@@ -228,14 +228,14 @@ class Trainer(object):
                 src_lengths = None
 
             tgt = onmt.io.make_features(batch, 'tgt', self.data_type, 0)
-            tgt_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
+            #tgt_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
 
             # F-prop through the model.
-            outputs, attns, _, outputs_2, attns_2, _2= self.model(src, tgt, tgt_2, src_lengths)
+            outputs, attns, _= self.model(src, tgt,  src_lengths) #, outputs_2, attns_2, _2    tgt_2,
 
             # Compute loss.
             batch_stats = self.valid_loss.monolithic_compute_loss(
-                    batch, outputs, outputs_2, attns, attns_2)
+                    batch, outputs, attns) #outputs_2,  , attns_2
 
             # Update statistics.
             stats.update(batch_stats)
@@ -263,19 +263,19 @@ class Trainer(object):
         real_generator = (real_model.generator.module
                           if isinstance(real_model.generator, nn.DataParallel)
                           else real_model.generator)
-        real_generator2 = (real_model.generator2.module
-                          if isinstance(real_model.generator2, nn.DataParallel)
-                          else real_model.generator2)
+        #real_generator2 = (real_model.generator2.module
+                          #if isinstance(real_model.generator2, nn.DataParallel)
+                          #else real_model.generator2)
 
         model_state_dict = real_model.state_dict()
         model_state_dict = {k: v for k, v in model_state_dict.items()
                             if 'generator' not in k}
         generator_state_dict = real_generator.state_dict()
-        generator_state_dict2 = real_generator2.state_dict()
+        #generator_state_dict2 = real_generator2.state_dict()
         checkpoint = {
             'model': model_state_dict,
             'generator': generator_state_dict,
-            'generator2': generator_state_dict2,
+            #'generator2': generator_state_dict2,
             'vocab': onmt.io.save_fields_to_vocab(fields),
             'opt': opt,
             'epoch': epoch,
@@ -319,13 +319,17 @@ class Trainer(object):
                 # 2. F-prop all but generator.
                 if self.grad_accum_count == 1:
                     self.model.zero_grad()
-                outputs, attns, dec_state, outputs_2, attns_2, dec_state_2 = \
-                    self.model(src, tgt, tgt_2, src_lengths, dec_state, dec_state_2)
+
+                #, outputs_2, attns_2, dec_state_2
+                outputs, attns, dec_state = \
+                    self.model(src, tgt, src_lengths, dec_state)
+                # tgt_2,, dec_state_2
 
                 # 3. Compute loss in shards for memory efficiency.
                 batch_stats = self.train_loss.sharded_compute_loss(
-                        batch, outputs, outputs_2, attns, attns_2, j,
+                        batch, outputs,  attns, j,
                         trunc_size, self.shard_size, normalization)
+                #outputs_2, attns_2,
 
                 # 4. Update the parameters and statistics.
                 if self.grad_accum_count == 1:
@@ -336,8 +340,8 @@ class Trainer(object):
                 # If truncated, don't backprop fully.
                 if dec_state is not None:
                     dec_state.detach()
-                if dec_state_2 is not None:
-                    dec_state_2.detach()
+                #if dec_state_2 is not None:
+                    #dec_state_2.detach()
 
         if self.grad_accum_count > 1:
             self.optim.step()

@@ -553,14 +553,14 @@ class NMTModel(nn.Module):
       decoder (:obj:`RNNDecoderBase`): a decoder object
       multi<gpu (bool): setup for multigpu support
     """
-    def __init__(self, encoder, decoder, decoder_2, multigpu=False):
+    def __init__(self, encoder, decoder, multigpu=False): #, decoder_2
         self.multigpu = multigpu
         super(NMTModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.decoder_2 = decoder_2
+        # self.decoder_2 = decoder_2
 
-    def forward(self, src, tgt, tgt_2, lengths, dec_state=None, dec_state_2=None):
+    def forward(self, src, tgt,  lengths, dec_state=None): #tgt_2,, dec_state_2=None
         """Forward propagate a `src` and `tgt` pair for training.
         Possible initialized with a beginning decoder state.
 
@@ -592,18 +592,19 @@ class NMTModel(nn.Module):
                          enc_state if dec_state is None
                          else dec_state,
                          memory_lengths=lengths)
-        enc_state2 = \
-            self.decoder.init_decoder_state(src, memory_bank, enc_final)
-        decoder_outputs_2, dec_state_2, attns_2 = \
-            self.decoder_2(tgt_2, tgt, tgt_emb, memory_bank,
-                         enc_state2 if dec_state_2 is None
-                         else dec_state_2,
-                         memory_lengths=lengths)
+        # enc_state2 = \
+        #     self.decoder.init_decoder_state(src, memory_bank, enc_final)
+        # decoder_outputs_2, dec_state_2, attns_2 = \
+        #     self.decoder_2(tgt_2, tgt, tgt_emb, memory_bank,
+        #                  enc_state2 if dec_state_2 is None
+        #                  else dec_state_2,
+        #                  memory_lengths=lengths)
         if self.multigpu:
             # Not yet supported on multi-gpu
             dec_state = None
             attns = None
-        return decoder_outputs, attns, dec_state, decoder_outputs_2, attns_2, dec_state_2
+        return decoder_outputs, attns, dec_state\
+            #, decoder_outputs_2, attns_2, dec_state_2
 
 
 class DecoderState(object):

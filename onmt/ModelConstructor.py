@@ -199,10 +199,10 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         tgt_embeddings2.word_lut.weight = src_embeddings.word_lut.weight
 
     decoder = make_decoder(model_opt, tgt_embeddings)
-    decoder_2 = make_decoder_2(model_opt, tgt_embeddings2)
+    # decoder_2 = make_decoder_2(model_opt, tgt_embeddings2)
 
     # Make NMTModel(= encoder + decoder).
-    model = NMTModel(encoder, decoder, decoder_2)
+    model = NMTModel(encoder, decoder) #, decoder_2
     model.model_type = model_opt.model_type
 
     # Make Generator.
@@ -215,23 +215,23 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
     else:
         generator = CopyGenerator(model_opt.rnn_size,
                                   fields["tgt"].vocab)
-    # Make Generator.
-    if not model_opt.copy_attn:
-        generator2 = nn.Sequential(
-            nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab_big)),
-            nn.LogSoftmax())
-        if model_opt.share_decoder_embeddings:
-            generator2[0].weight = decoder_2.embeddings.word_lut.weight
-    else:
-        generator2 = CopyGenerator(model_opt.rnn_size,
-                                      fields["tgt"].vocab_big)
+    # # Make Generator.
+    # if not model_opt.copy_attn:
+    #     generator2 = nn.Sequential(
+    #         nn.Linear(model_opt.rnn_size, len(fields["tgt"].vocab_big)),
+    #         nn.LogSoftmax())
+    #     if model_opt.share_decoder_embeddings:
+    #         generator2[0].weight = decoder_2.embeddings.word_lut.weight
+    # else:
+    #     generator2 = CopyGenerator(model_opt.rnn_size,
+    #                                   fields["tgt"].vocab_big)
 
     # Load the model states from checkpoint or initialize them.
     if checkpoint is not None:
         print('Loading model parameters.')
         model.load_state_dict(checkpoint['model'])
         generator.load_state_dict(checkpoint['generator'])
-        generator2.load_state_dict(checkpoint['generator2'])
+        # generator2.load_state_dict(checkpoint['generator2'])
     else:
         if model_opt.param_init != 0.0:
             print('Intializing model parameters.')
@@ -239,8 +239,8 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
                 p.data.uniform_(-model_opt.param_init, model_opt.param_init)
             for p in generator.parameters():
                 p.data.uniform_(-model_opt.param_init, model_opt.param_init)
-            for p in generator2.parameters():
-                p.data.uniform_(-model_opt.param_init, model_opt.param_init)
+            # for p in generator2.parameters():
+            #     p.data.uniform_(-model_opt.param_init, model_opt.param_init)
         if model_opt.param_init_glorot:
             for p in model.parameters():
                 if p.dim() > 1:
@@ -248,9 +248,9 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
             for p in generator.parameters():
                 if p.dim() > 1:
                     xavier_uniform(p)
-            for p in generator2.parameters():
-                if p.dim() > 1:
-                    xavier_uniform(p)
+            # for p in generator2.parameters():
+            #     if p.dim() > 1:
+            #         xavier_uniform(p)
 
         if hasattr(model.encoder, 'embeddings'):
             model.encoder.embeddings.load_pretrained_vectors(
@@ -261,7 +261,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
 
     # Add generator to model (this registers it as parameter of model).
     model.generator = generator
-    model.generator2 = generator2
+    # model.generator2 = generator2
 
     # Make the whole model leverage GPU if indicated to do so.
     if gpu:
