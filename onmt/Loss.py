@@ -57,7 +57,7 @@ class LossComputeBase(nn.Module):
         """
         return NotImplementedError
 
-    def _compute_loss(self, batch, output, output2, target_unk, target, **kwargs):
+    def _compute_loss(self, batch, output, target_unk, **kwargs): #, output2 , target
         """
         Compute the loss. Subclass must define this method.
 
@@ -122,7 +122,7 @@ class LossComputeBase(nn.Module):
         """
         batch_stats = onmt.Statistics()
         range_ = (cur_trunc, cur_trunc + trunc_size)
-        shard_state = self._make_shard_state(batch, output, output2, range_, attns, attns_2,)
+        shard_state = self._make_shard_state(batch, output, range_, attns) #, output2 , attns_2,
 
         for shard in shards(shard_state, shard_size):
             loss, stats = self._compute_loss(batch, **shard)
