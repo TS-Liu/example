@@ -582,7 +582,7 @@ class NMTModel(nn.Module):
                  * final decoder state
         """
         tgt = tgt[:-1]  # exclude last target from inputs
-        tgt_2 = tgt_2[:-1]
+        #tgt_2 = tgt_2[:-1]
 
         enc_final, memory_bank = self.encoder(src, lengths)
         enc_state = \

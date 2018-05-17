@@ -300,7 +300,7 @@ class Trainer(object):
                 trunc_size = target_size
 
             dec_state = None
-            dec_state_2 = None
+            #dec_state_2 = None
             src = onmt.io.make_features(batch, 'src', self.data_type, 0)
             if self.data_type == 'text':
                 _, src_lengths = batch.src
@@ -309,12 +309,12 @@ class Trainer(object):
                 src_lengths = None
 
             tgt_outer = onmt.io.make_features(batch, 'tgt', self.data_type, 0)
-            tgt_outer_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
+            #tgt_outer_2 = onmt.io.make_features(batch, 'tgt', self.data_type, 1)
 
             for j in range(0, target_size-1, trunc_size):
                 # 1. Create truncated target.
                 tgt = tgt_outer[j: j + trunc_size]
-                tgt_2 = tgt_outer_2[j: j + trunc_size]
+                #tgt_2 = tgt_outer_2[j: j + trunc_size]
 
                 # 2. F-prop all but generator.
                 if self.grad_accum_count == 1:
